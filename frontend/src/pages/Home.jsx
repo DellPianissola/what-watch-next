@@ -1,12 +1,32 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getMovies, getProfiles } from '../services/api.js'
 import './Home.css'
 
-const Home = () => {
+const Home = ({ profiles }) => {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
+  const navigate = useNavigate()
 
   useEffect(() => {
     setIsLoaded(true)
+    loadStats()
   }, [])
+
+  const loadStats = async () => {
+    try {
+      const response = await getMovies()
+      const movies = response.data.movies
+      
+      setStats({
+        movies: movies.filter(m => m.type === 'MOVIE').length,
+        series: movies.filter(m => m.type === 'SERIES').length,
+        animes: movies.filter(m => m.type === 'ANIME').length,
+      })
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error)
+    }
+  }
 
   return (
     <div className="home">
@@ -38,34 +58,43 @@ const Home = () => {
 
           {/* Action Buttons */}
           <div className="action-buttons">
-            <button className="btn btn-primary">
-              <span className="btn-icon">🎲</span>
-              <span className="btn-text">Sortear</span>
+            <button 
+              className="btn btn-primary"
+              onClick={() => navigate('/search')}
+            >
+              <span className="btn-icon">🔍</span>
+              <span className="btn-text">Buscar</span>
             </button>
-            <button className="btn btn-secondary">
-              <span className="btn-icon">➕</span>
-              <span className="btn-text">Adicionar</span>
-            </button>
-            <button className="btn btn-outline">
+            <button 
+              className="btn btn-secondary"
+              onClick={() => navigate('/list')}
+            >
               <span className="btn-icon">📋</span>
               <span className="btn-text">Minha Lista</span>
+            </button>
+            <button 
+              className="btn btn-outline"
+              onClick={() => navigate('/profiles')}
+            >
+              <span className="btn-icon">👥</span>
+              <span className="btn-text">Perfis</span>
             </button>
           </div>
 
           {/* Stats Preview */}
           <div className="stats-preview">
             <div className="stat-item">
-              <div className="stat-value">0</div>
+              <div className="stat-value">{stats.movies}</div>
               <div className="stat-label">Filmes</div>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
-              <div className="stat-value">0</div>
+              <div className="stat-value">{stats.series}</div>
               <div className="stat-label">Séries</div>
             </div>
             <div className="stat-divider"></div>
             <div className="stat-item">
-              <div className="stat-value">0</div>
+              <div className="stat-value">{stats.animes}</div>
               <div className="stat-label">Animes</div>
             </div>
           </div>
