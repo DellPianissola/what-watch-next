@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { searchExternal, createMovie } from '../services/api.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import './Search.css'
 
-const Search = ({ profiles, onMovieAdded }) => {
+const Search = () => {
+  const { profile } = useAuth()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState({ movies: [], series: [], animes: [] })
-  const [selectedProfile, setSelectedProfile] = useState('')
   const [addingMovie, setAddingMovie] = useState(null)
 
   const handleSearch = async (e) => {
@@ -27,8 +28,8 @@ const Search = ({ profiles, onMovieAdded }) => {
   }
 
   const handleAddMovie = async (movie) => {
-    if (!selectedProfile) {
-      alert('Selecione um perfil primeiro!')
+    if (!profile) {
+      alert('Perfil não encontrado!')
       return
     }
 
@@ -54,14 +55,12 @@ const Search = ({ profiles, onMovieAdded }) => {
         genres: movie.genres || [],
         rating: movie.rating,
         externalId: movie.externalId?.toString(),
-        addedById: selectedProfile,
         priority: 'MEDIUM',
         isNew: true,
       }
 
       await createMovie(movieData)
       alert('Filme adicionado com sucesso!')
-      if (onMovieAdded) onMovieAdded()
     } catch (error) {
       console.error('Erro ao adicionar filme:', error)
       alert(error.response?.data?.error || 'Erro ao adicionar filme')
@@ -102,23 +101,6 @@ const Search = ({ profiles, onMovieAdded }) => {
           </div>
         </form>
 
-        {profiles.length > 0 && (
-          <div className="profile-selector">
-            <label>Adicionar como:</label>
-            <select
-              value={selectedProfile}
-              onChange={(e) => setSelectedProfile(e.target.value)}
-              className="profile-select"
-            >
-              <option value="">Selecione um perfil</option>
-              {profiles.map(profile => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {allResults.length > 0 && (
           <div className="results-grid">
@@ -148,7 +130,7 @@ const Search = ({ profiles, onMovieAdded }) => {
                   </div>
                   <button
                     onClick={() => handleAddMovie(item)}
-                    disabled={!selectedProfile || addingMovie === item.id}
+                    disabled={!profile || addingMovie === item.id}
                     className="btn-add"
                   >
                     {addingMovie === item.id ? 'Adicionando...' : '➕ Adicionar'}

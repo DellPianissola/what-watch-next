@@ -13,7 +13,8 @@ if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations)" ]; then
 else
   echo "📝 Criando schema inicial no banco de dados..."
   # Usa db push para criar o schema diretamente (melhor para desenvolvimento)
-  npx prisma db push --accept-data-loss || true
+  # Tenta push normal primeiro, se falhar tenta com force-reset
+  npx prisma db push --accept-data-loss || npx prisma db push --force-reset --accept-data-loss || true
 fi
 
 echo "✅ Banco de dados pronto!"

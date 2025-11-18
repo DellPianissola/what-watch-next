@@ -3,10 +3,13 @@ import { prisma } from '../config/database.js'
 
 const router = express.Router()
 
-// GET /api/profiles - Lista todos os perfis
+// GET /api/profiles - Retorna o perfil do usuário autenticado
 router.get('/', async (req, res) => {
   try {
-    const profiles = await prisma.profile.findMany({
+    const userId = req.user.id
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
       include: {
         _count: {
           select: {
@@ -14,31 +17,38 @@ router.get('/', async (req, res) => {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
     })
 
-    res.json({ profiles })
+    if (!profile) {
+      return res.status(404).json({ error: 'Perfil não encontrado' })
+    }
+
+    res.json({ profile })
   } catch (error) {
-    console.error('Erro ao buscar perfis:', error)
-    res.status(500).json({ error: 'Erro ao buscar perfis' })
+    console.error('Erro ao buscar perfil:', error)
+    res.status(500).json({ error: 'Erro ao buscar perfil' })
   }
 })
 
-// POST /api/profiles - Cria novo perfil
+// POST /api/profiles - Cria perfil para o usuário autenticado (se não existir)
 router.post('/', async (req, res) => {
   try {
-    const { name, avatar } = req.body
+    const userId = req.user.id
+    const { name } = req.body
 
-    if (!name) {
-      return res.status(400).json({ error: 'Nome é obrigatório' })
+    // Verifica se já existe perfil
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId },
+    })
+
+    if (existingProfile) {
+      return res.status(400).json({ error: 'Usuário já possui um perfil' })
     }
 
     const profile = await prisma.profile.create({
       data: {
-        name,
-        avatar: avatar || null,
+        name: name || req.user.username,
+        userId,
       },
     })
 
@@ -52,13 +62,13 @@ router.post('/', async (req, res) => {
   }
 })
 
-// GET /api/profiles/:id - Busca perfil por ID
-router.get('/:id', async (req, res) => {
+// GET /api/profiles/me - Retorna perfil do usuário autenticado com filmes
+router.get('/me', async (req, res) => {
   try {
-    const { id } = req.params
+    const userId = req.user.id
 
     const profile = await prisma.profile.findUnique({
-      where: { id },
+      where: { userId },
       include: {
         movies: {
           orderBy: [
@@ -85,14 +95,14 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// PUT /api/profiles/:id - Atualiza perfil
-router.put('/:id', async (req, res) => {
+// PUT /api/profiles - Atualiza perfil do usuário autenticado
+router.put('/', async (req, res) => {
   try {
-    const { id } = req.params
-    const { name, avatar } = req.body
+    const userId = req.user.id
+    const { name } = req.body
 
     const existingProfile = await prisma.profile.findUnique({
-      where: { id },
+      where: { userId },
     })
 
     if (!existingProfile) {
@@ -101,10 +111,9 @@ router.put('/:id', async (req, res) => {
 
     const updateData = {}
     if (name !== undefined) updateData.name = name
-    if (avatar !== undefined) updateData.avatar = avatar
 
     const profile = await prisma.profile.update({
-      where: { id },
+      where: { userId },
       data: updateData,
     })
 

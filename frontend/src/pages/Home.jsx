@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMovies, getProfiles } from '../services/api.js'
+import { getMovies } from '../services/api.js'
 import './Home.css'
 
-const Home = ({ profiles }) => {
+const Home = () => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
   const navigate = useNavigate()

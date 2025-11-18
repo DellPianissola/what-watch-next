@@ -99,13 +99,16 @@
   gap: 1.5rem;
 }
 
-.profile-card {
+.profile-card,
+.profile-card-single {
   background: var(--surface);
   border-radius: 16px;
   padding: 2rem;
   text-align: center;
   border: 1px solid var(--surface-light);
   transition: transform 0.2s;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .profile-card:hover {

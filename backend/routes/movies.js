@@ -3,15 +3,23 @@ import { prisma } from '../config/database.js'
 
 const router = express.Router()
 
-// GET /api/movies - Lista todos os filmes, séries e animes
+// GET /api/movies - Lista filmes do usuário autenticado
 router.get('/', async (req, res) => {
   try {
-    const { profileId, type, watched } = req.query
+    const { type, watched } = req.query
     
-    const where = {}
+    // Busca o perfil do usuário autenticado
+    const userId = req.user.id
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    })
+
+    if (!profile) {
+      return res.json({ movies: [] })
+    }
     
-    if (profileId) {
-      where.addedById = profileId
+    const where = {
+      addedById: profile.id,
     }
     
     if (type) {
@@ -29,7 +37,6 @@ router.get('/', async (req, res) => {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
       },
@@ -61,7 +68,6 @@ router.post('/', async (req, res) => {
       priority = 'MEDIUM',
       isNew = false,
       externalId,
-      addedById, // ID do perfil que está adicionando
     } = req.body
 
     // Validações
@@ -73,18 +79,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Tipo inválido. Use: MOVIE, SERIES ou ANIME' })
     }
 
-    if (!addedById) {
-      return res.status(400).json({ error: 'ID do perfil (addedById) é obrigatório' })
-    }
-
-    // Verifica se o perfil existe
+    // Busca o perfil do usuário autenticado
+    const userId = req.user.id
     const profile = await prisma.profile.findUnique({
-      where: { id: addedById },
+      where: { userId },
     })
 
     if (!profile) {
-      return res.status(404).json({ error: 'Perfil não encontrado' })
+      return res.status(404).json({ error: 'Perfil não encontrado. Crie um perfil primeiro.' })
     }
+
+    const addedById = profile.id
 
     // Converte rating para Decimal se fornecido
     let ratingDecimal = null
@@ -137,19 +142,31 @@ router.post('/', async (req, res) => {
   }
 })
 
-// GET /api/movies/:id - Busca filme por ID
+// GET /api/movies/:id - Busca filme por ID (apenas do usuário autenticado)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
 
-    const movie = await prisma.movie.findUnique({
-      where: { id },
+    // Busca o perfil do usuário
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    })
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Perfil não encontrado' })
+    }
+
+    const movie = await prisma.movie.findFirst({
+      where: {
+        id,
+        addedById: profile.id,
+      },
       include: {
         addedBy: {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
       },
@@ -166,10 +183,11 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// PUT /api/movies/:id - Atualiza filme
+// PUT /api/movies/:id - Atualiza filme (apenas do usuário autenticado)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
     const {
       title,
       type,
@@ -185,9 +203,21 @@ router.put('/:id', async (req, res) => {
       watchedAt,
     } = req.body
 
-    // Verifica se o filme existe
-    const existingMovie = await prisma.movie.findUnique({
-      where: { id },
+    // Busca o perfil do usuário
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    })
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Perfil não encontrado' })
+    }
+
+    // Verifica se o filme existe e pertence ao usuário
+    const existingMovie = await prisma.movie.findFirst({
+      where: {
+        id,
+        addedById: profile.id,
+      },
     })
 
     if (!existingMovie) {
@@ -251,13 +281,27 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// DELETE /api/movies/:id - Remove filme
+// DELETE /api/movies/:id - Remove filme (apenas do usuário autenticado)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
 
-    const movie = await prisma.movie.findUnique({
-      where: { id },
+    // Busca o perfil do usuário
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    })
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Perfil não encontrado' })
+    }
+
+    // Verifica se o filme existe e pertence ao usuário
+    const movie = await prisma.movie.findFirst({
+      where: {
+        id,
+        addedById: profile.id,
+      },
     })
 
     if (!movie) {

@@ -1,66 +1,59 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Home from './pages/Home'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import Search from './pages/Search'
 import MyList from './pages/MyList'
 import Profiles from './pages/Profiles'
-import { getProfiles } from './services/api.js'
+import NavBar from './components/NavBar.jsx'
 import './App.css'
 
 function App() {
-  const [profiles, setProfiles] = useState([])
-
-  useEffect(() => {
-    loadProfiles()
-  }, [])
-
-  const loadProfiles = async () => {
-    try {
-      const response = await getProfiles()
-      setProfiles(response.data.profiles)
-    } catch (error) {
-      console.error('Erro ao carregar perfis:', error)
-    }
-  }
-
   return (
-    <Router>
-      <NavBar />
-      <Routes>
-        <Route path="/" element={<Home profiles={profiles} />} />
-        <Route path="/search" element={<Search profiles={profiles} onMovieAdded={loadProfiles} />} />
-        <Route path="/list" element={<MyList profiles={profiles} />} />
-        <Route path="/profiles" element={<Profiles onProfileChange={setProfiles} />} />
-      </Routes>
-    </Router>
-  )
-}
-
-function NavBar() {
-  const location = useLocation()
-
-  const isActive = (path) => location.pathname === path
-
-  return (
-    <nav className="navbar">
-      <Link to="/" className="nav-logo">
-        🎬 What Watch Next
-      </Link>
-      <div className="nav-links">
-        <Link to="/" className={isActive('/') ? 'active' : ''}>
-          🏠 Início
-        </Link>
-        <Link to="/search" className={isActive('/search') ? 'active' : ''}>
-          🔍 Buscar
-        </Link>
-        <Link to="/list" className={isActive('/list') ? 'active' : ''}>
-          📋 Minha Lista
-        </Link>
-        <Link to="/profiles" className={isActive('/profiles') ? 'active' : ''}>
-          👥 Perfis
-        </Link>
-      </div>
-    </nav>
+    <AuthProvider>
+      <Router>
+        <NavBar />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/list"
+            element={
+              <ProtectedRoute>
+                <MyList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profiles"
+            element={
+              <ProtectedRoute>
+                <Profiles />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 

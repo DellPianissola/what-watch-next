@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react'
 import { getMovies, deleteMovie, updateMovie } from '../services/api.js'
 import './MyList.css'
 
-const MyList = ({ profiles }) => {
+const MyList = () => {
   const [movies, setMovies] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState({
-    profileId: '',
     type: '',
     watched: '',
   })
@@ -19,7 +18,6 @@ const MyList = ({ profiles }) => {
     setLoading(true)
     try {
       const params = {}
-      if (filter.profileId) params.profileId = filter.profileId
       if (filter.type) params.type = filter.type
       if (filter.watched !== '') params.watched = filter.watched
 
@@ -81,19 +79,6 @@ const MyList = ({ profiles }) => {
         <h2>Minha Lista</h2>
 
         <div className="filters">
-          <select
-            value={filter.profileId}
-            onChange={(e) => setFilter({ ...filter, profileId: e.target.value })}
-            className="filter-select"
-          >
-            <option value="">Todos os perfis</option>
-            {profiles.map(profile => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name}
-              </option>
-            ))}
-          </select>
-
           <select
             value={filter.type}
             onChange={(e) => setFilter({ ...filter, type: e.target.value })}

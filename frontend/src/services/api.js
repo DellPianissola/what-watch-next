@@ -19,11 +19,15 @@ export const createMovie = (data) => api.post('/movies', data)
 export const updateMovie = (id, data) => api.put(`/movies/${id}`, data)
 export const deleteMovie = (id) => api.delete(`/movies/${id}`)
 
+// Auth
+export const login = (email, password) => api.post('/auth/login', { email, password })
+export const register = (email, username, password) => api.post('/auth/register', { email, username, password })
+export const getMe = () => api.get('/auth/me')
+
 // Profiles
 export const getProfiles = () => api.get('/profiles')
-export const getProfileById = (id) => api.get(`/profiles/${id}`)
 export const createProfile = (data) => api.post('/profiles', data)
-export const updateProfile = (id, data) => api.put(`/profiles/${id}`, data)
+export const updateProfile = (id, data) => api.put('/profiles', data)
 
 // External APIs
 export const searchExternal = (query, type, page = 1) => 

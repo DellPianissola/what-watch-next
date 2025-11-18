@@ -1,79 +1,69 @@
 import { useState, useEffect } from 'react'
 import { getProfiles, createProfile, updateProfile } from '../services/api.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import './Profiles.css'
 
-const Profiles = ({ onProfileChange }) => {
-  const [profiles, setProfiles] = useState([])
-  const [loading, setLoading] = useState(true)
+const Profiles = () => {
+  const { profile, updateProfile: updateAuthProfile } = useAuth()
+  const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [formData, setFormData] = useState({ name: '', avatar: '' })
+  const [formData, setFormData] = useState({ name: '' })
 
   useEffect(() => {
-    loadProfiles()
-  }, [])
-
-  const loadProfiles = async () => {
-    setLoading(true)
-    try {
-      const response = await getProfiles()
-      setProfiles(response.data.profiles)
-      if (onProfileChange) onProfileChange(response.data.profiles)
-    } catch (error) {
-      console.error('Erro ao carregar perfis:', error)
-    } finally {
-      setLoading(false)
+    if (profile) {
+      setFormData({ name: profile.name })
     }
-  }
+  }, [profile])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!formData.name.trim()) return
 
+    setLoading(true)
     try {
-      if (editing) {
-        await updateProfile(editing.id, formData)
+      if (profile) {
+        // Atualiza perfil existente
+        const response = await updateProfile(formData)
+        updateAuthProfile(response.data.profile)
       } else {
-        await createProfile(formData)
+        // Cria novo perfil
+        const response = await createProfile(formData)
+        updateAuthProfile(response.data.profile)
       }
       setShowForm(false)
-      setEditing(null)
-      setFormData({ name: '', avatar: '' })
-      loadProfiles()
     } catch (error) {
       console.error('Erro ao salvar perfil:', error)
       alert(error.response?.data?.error || 'Erro ao salvar perfil')
+    } finally {
+      setLoading(false)
     }
-  }
-
-  const handleEdit = (profile) => {
-    setEditing(profile)
-    setFormData({ name: profile.name, avatar: profile.avatar || '' })
-    setShowForm(true)
   }
 
   const handleCancel = () => {
     setShowForm(false)
-    setEditing(null)
-    setFormData({ name: '', avatar: '' })
+    if (profile) {
+      setFormData({ name: profile.name })
+    }
   }
 
   return (
     <div className="profiles-page">
       <div className="profiles-container">
         <div className="profiles-header">
-          <h2>Perfis</h2>
-          <button
-            onClick={() => setShowForm(true)}
-            className="btn-create"
-          >
-            ➕ Novo Perfil
-          </button>
+          <h2>Meu Perfil</h2>
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="btn-create"
+            >
+              {profile ? '✏️ Editar' : '➕ Criar Perfil'}
+            </button>
+          )}
         </div>
 
         {showForm && (
           <form onSubmit={handleSubmit} className="profile-form">
-            <h3>{editing ? 'Editar Perfil' : 'Novo Perfil'}</h3>
+            <h3>{profile ? 'Editar Perfil' : 'Criar Perfil'}</h3>
             <input
               type="text"
               placeholder="Nome do perfil"
@@ -81,58 +71,42 @@ const Profiles = ({ onProfileChange }) => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
               className="form-input"
-            />
-            <input
-              type="url"
-              placeholder="URL do avatar (opcional)"
-              value={formData.avatar}
-              onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-              className="form-input"
+              disabled={loading}
             />
             <div className="form-actions">
-              <button type="submit" className="btn-save">
-                {editing ? 'Atualizar' : 'Criar'}
+              <button type="submit" disabled={loading} className="btn-save">
+                {loading ? 'Salvando...' : profile ? 'Atualizar' : 'Criar'}
               </button>
-              <button type="button" onClick={handleCancel} className="btn-cancel">
+              <button type="button" onClick={handleCancel} disabled={loading} className="btn-cancel">
                 Cancelar
               </button>
             </div>
           </form>
         )}
 
-        {loading ? (
-          <div className="loading">Carregando...</div>
-        ) : profiles.length === 0 ? (
-          <div className="empty-state">
-            <p>Nenhum perfil criado ainda</p>
-            <p className="empty-hint">Crie um perfil para começar a adicionar filmes!</p>
-          </div>
-        ) : (
-          <div className="profiles-grid">
-            {profiles.map((profile) => (
-              <div key={profile.id} className="profile-card">
+        {!showForm && (
+          <>
+            {loading ? (
+              <div className="loading">Carregando...</div>
+            ) : !profile ? (
+              <div className="empty-state">
+                <p>Nenhum perfil criado ainda</p>
+                <p className="empty-hint">Crie um perfil para começar a adicionar filmes!</p>
+              </div>
+            ) : (
+              <div className="profile-card-single">
                 <div className="profile-avatar">
-                  {profile.avatar ? (
-                    <img src={profile.avatar} alt={profile.name} />
-                  ) : (
-                    <div className="avatar-placeholder">
-                      {profile.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <div className="avatar-placeholder">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
                 </div>
                 <h3>{profile.name}</h3>
                 <p className="profile-stats">
                   {profile._count?.movies || 0} filme{profile._count?.movies !== 1 ? 's' : ''}
                 </p>
-                <button
-                  onClick={() => handleEdit(profile)}
-                  className="btn-edit"
-                >
-                  ✏️ Editar
-                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
