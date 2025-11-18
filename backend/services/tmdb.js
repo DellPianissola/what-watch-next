@@ -180,6 +180,7 @@ class TMDBService {
         title: item.title || item.name,
         type: itemType,
         description: item.overview,
+        descriptionLanguage: 'pt-BR', // TMDB retorna em português quando language=pt-BR
         poster: item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : null,
         year: item.release_date ? new Date(item.release_date).getFullYear() : null,
         rating: item.vote_average ? parseFloat(item.vote_average.toFixed(1)) : null,
@@ -196,6 +197,7 @@ class TMDBService {
       title: data.title,
       type: 'MOVIE',
       description: data.overview,
+      descriptionLanguage: 'pt-BR', // TMDB retorna em português quando language=pt-BR
       poster: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : null,
       year: data.release_date ? new Date(data.release_date).getFullYear() : null,
       duration: data.runtime,
@@ -215,6 +217,7 @@ class TMDBService {
       title: data.name,
       type: 'SERIES',
       description: data.overview,
+      descriptionLanguage: 'pt-BR', // TMDB retorna em português quando language=pt-BR
       poster: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : null,
       year: data.first_air_date ? new Date(data.first_air_date).getFullYear() : null,
       duration: data.episode_run_time?.[0] || null,

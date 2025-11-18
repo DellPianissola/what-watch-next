@@ -53,6 +53,7 @@ class JikanService {
       title: item.title,
       type: 'ANIME',
       description: item.synopsis,
+      descriptionLanguage: 'en', // Jikan API não suporta português, sempre retorna em inglês
       poster: item.images?.jpg?.image_url || null,
       year: item.year || null,
       duration: item.duration ? this.parseDuration(item.duration) : null,
@@ -71,6 +72,7 @@ class JikanService {
       title: data.title,
       type: 'ANIME',
       description: data.synopsis,
+      descriptionLanguage: 'en', // Jikan API não suporta português, sempre retorna em inglês
       poster: data.images?.jpg?.large_image_url || data.images?.jpg?.image_url || null,
       year: data.year || null,
       duration: data.duration ? this.parseDuration(data.duration) : null,
