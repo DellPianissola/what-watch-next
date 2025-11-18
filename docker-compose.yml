@@ -1,18 +1,20 @@
 services:
-  mongodb:
-    image: mongo:7.0
+  postgres:
+    image: postgres:16-alpine
     container_name: what-watch-next-db
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     environment:
-      - MONGO_INITDB_DATABASE=whatwatchnext
+      - POSTGRES_USER=whatwatchnext
+      - POSTGRES_PASSWORD=whatwatchnext
+      - POSTGRES_DB=whatwatchnext
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "pg_isready -U whatwatchnext"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,9 +34,9 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=5000
-      - MONGODB_URI=mongodb://mongodb:27017/whatwatchnext
+      - DATABASE_URL=postgresql://whatwatchnext:whatwatchnext@postgres:5432/whatwatchnext
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     networks:
       - app-network
@@ -58,7 +60,7 @@ services:
       - app-network
 
 volumes:
-  mongodb_data:
+  postgres_data:
 
 networks:
   app-network:

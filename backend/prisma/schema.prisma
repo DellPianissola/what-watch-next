@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  movies    Movie[]
+  
+  @@map("profiles")
+}
+
+model Movie {
+  id          String   @id @default(uuid())
+  title       String
+  type        MovieType
+  description String?
+  poster      String?
+  year        Int?
+  duration    Int?     // Duração em minutos (filmes) ou episódios (séries)
+  genres      String[] // Array de gêneros
+  rating      Float?   @db.Decimal(3, 1) // Nota de 0 a 10
+  priority    Priority @default(MEDIUM)
+  isNew       Boolean  @default(false)
+  watched     Boolean  @default(false)
+  watchedAt   DateTime?
+  externalId  String?  // ID da API externa (TMDB, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  addedById   String
+  addedBy     Profile  @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  addedAt     DateTime @default(now())
+  
+  @@index([addedById])
+  @@index([type])
+  @@index([priority])
+  @@index([watched])
+  @@map("movies")
+}
+
+enum MovieType {
+  MOVIE
+  SERIES
+  ANIME
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+

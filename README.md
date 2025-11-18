@@ -29,6 +29,8 @@ Uma aplicação moderna e divertida para casais escolherem o que assistir juntos
 ### Backend
 - **Node.js** - Runtime JavaScript
 - **Express** - Framework web
+- **Prisma** - ORM para PostgreSQL
+- **PostgreSQL** - Banco de dados relacional
 - **CORS** - Cross-Origin Resource Sharing
 
 ### DevOps
@@ -51,7 +53,8 @@ what-watch-next/
 ├── backend/              # API Node.js
 │   ├── routes/          # Rotas da API
 │   ├── controllers/     # Lógica de negócio
-│   ├── models/          # Modelos de dados
+│   ├── config/          # Configurações (DB, Swagger)
+│   ├── prisma/          # Schema e migrations do Prisma
 │   ├── server.js        # Servidor Express
 │   ├── Dockerfile
 │   └── package.json
@@ -81,7 +84,7 @@ docker compose up
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:5000/api
 - **Documentação Swagger**: http://localhost:5000/docs
-- **MongoDB**: localhost:27017
+- **PostgreSQL**: localhost:5432
 
 ### Comandos Docker Úteis
 
@@ -132,7 +135,7 @@ npm run dev
 
 O projeto inclui 3 serviços que são iniciados automaticamente:
 
-1. **MongoDB** - Banco de dados (porta 27017)
+1. **PostgreSQL** - Banco de dados (porta 5432)
 2. **Backend** - API Node.js/Express (porta 5000)
 3. **Frontend** - Aplicação React (porta 3000)
 
@@ -204,7 +207,7 @@ A aplicação foi desenvolvida com foco em:
 - [ ] CRUD de filmes/séries/animes
 - [ ] Sistema de prioridades
 - [ ] Marcação de "novo"
-- [x] Banco de dados (MongoDB configurado)
+- [x] Banco de dados (PostgreSQL configurado)
 
 ### Fase 3 - Sorteio e Jogo
 - [ ] Algoritmo de sorteio inteligente

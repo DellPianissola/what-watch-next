@@ -16,7 +16,7 @@ docker compose up
 ### 3️⃣ Acesse a Aplicação
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:5000/api
-- **MongoDB**: localhost:27017
+- **PostgreSQL**: localhost:5432
 
 Pronto! 🎉
 
@@ -41,7 +41,7 @@ docker compose logs -f
 # Ver logs de um serviço específico
 docker compose logs -f backend
 docker compose logs -f frontend
-docker compose logs -f mongodb
+docker compose logs -f postgres
 
 # Rebuildar as imagens
 docker compose build

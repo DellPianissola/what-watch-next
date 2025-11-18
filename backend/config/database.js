@@ -1,17 +1,24 @@
-import mongoose from 'mongoose'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+})
 
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/whatwatchnext'
-    
-    await mongoose.connect(mongoURI)
-    
-    console.log('✅ MongoDB conectado com sucesso!')
+    await prisma.$connect()
+    console.log('✅ PostgreSQL conectado com sucesso!')
   } catch (error) {
-    console.error('❌ Erro ao conectar com MongoDB:', error.message)
+    console.error('❌ Erro ao conectar com PostgreSQL:', error.message)
     process.exit(1)
   }
 }
 
+// Graceful shutdown
+process.on('beforeExit', async () => {
+  await prisma.$disconnect()
+})
+
+export { prisma }
 export default connectDB
 

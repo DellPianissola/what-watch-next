@@ -23,7 +23,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'What Watch Next API - Documentação',
 }))
 
-// Connect to MongoDB
+// Connect to PostgreSQL
 connectDB()
 
 // Routes
