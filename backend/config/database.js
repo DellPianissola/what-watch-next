@@ -4,10 +4,7 @@ const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/whatwatchnext'
     
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
+    await mongoose.connect(mongoURI)
     
     console.log('✅ MongoDB conectado com sucesso!')
   } catch (error) {

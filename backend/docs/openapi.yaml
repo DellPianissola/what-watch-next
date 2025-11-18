@@ -1,0 +1,423 @@
+openapi: 3.0.0
+info:
+  title: What Watch Next API
+  version: 1.0.0
+  description: API para gerenciar filmes, séries e animes para assistir em casal
+  contact:
+    name: What Watch Next
+    email: dell.pianissola@outlook.com
+
+servers:
+  - url: http://localhost:5000/api
+    description: Servidor de desenvolvimento
+
+paths:
+  /health:
+    get:
+      summary: Health check da API
+      tags: [Health]
+      description: Verifica se a API está funcionando corretamente
+      responses:
+        '200':
+          description: API está funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: What Watch Next API is running
+
+  /movies:
+    get:
+      summary: Lista todos os filmes, séries e animes
+      tags: [Movies]
+      description: Retorna uma lista de todos os conteúdos cadastrados
+      responses:
+        '200':
+          description: Lista de conteúdos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  movies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Movie'
+    
+    post:
+      summary: Adiciona um novo filme, série ou anime
+      tags: [Movies]
+      description: Cria um novo conteúdo na lista
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+            example:
+              title: "Interestelar"
+              type: "movie"
+              description: "Um filme sobre viagem no tempo e espaço"
+              year: 2014
+              duration: 169
+              genres: ["Ficção Científica", "Drama"]
+              rating: 8.6
+              priority: "high"
+              isNew: false
+              addedBy: "507f1f77bcf86cd799439012"
+      responses:
+        '201':
+          description: Conteúdo criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Filme criado com sucesso
+                  movie:
+                    $ref: '#/components/schemas/Movie'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /movies/{id}:
+    get:
+      summary: Busca um filme, série ou anime por ID
+      tags: [Movies]
+      description: Retorna os detalhes de um conteúdo específico
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do conteúdo
+      responses:
+        '200':
+          description: Conteúdo encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  movie:
+                    $ref: '#/components/schemas/Movie'
+        '404':
+          description: Conteúdo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Atualiza um filme, série ou anime
+      tags: [Movies]
+      description: Atualiza os dados de um conteúdo existente
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do conteúdo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+      responses:
+        '200':
+          description: Conteúdo atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '404':
+          description: Conteúdo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Remove um filme, série ou anime
+      tags: [Movies]
+      description: Remove um conteúdo da lista
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do conteúdo
+      responses:
+        '200':
+          description: Conteúdo removido com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '404':
+          description: Conteúdo não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /profiles:
+    get:
+      summary: Lista todos os perfis
+      tags: [Profiles]
+      description: Retorna uma lista de todos os perfis cadastrados
+      responses:
+        '200':
+          description: Lista de perfis retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Profile'
+    
+    post:
+      summary: Cria um novo perfil
+      tags: [Profiles]
+      description: Adiciona um novo perfil ao sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+            example:
+              name: "Você"
+              avatar: "https://example.com/avatar.jpg"
+      responses:
+        '201':
+          description: Perfil criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Perfil criado com sucesso
+                  profile:
+                    $ref: '#/components/schemas/Profile'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /profiles/{id}:
+    get:
+      summary: Busca um perfil por ID
+      tags: [Profiles]
+      description: Retorna os detalhes de um perfil específico
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do perfil
+      responses:
+        '200':
+          description: Perfil encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profile:
+                    $ref: '#/components/schemas/Profile'
+        '404':
+          description: Perfil não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Atualiza um perfil
+      tags: [Profiles]
+      description: Atualiza os dados de um perfil existente
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID do perfil
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          description: Perfil atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '404':
+          description: Perfil não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Movie:
+      type: object
+      required: [title, type]
+      properties:
+        id:
+          type: string
+          description: ID único do filme/série/anime
+          example: '507f1f77bcf86cd799439011'
+        title:
+          type: string
+          description: Título do filme/série/anime
+          example: 'Interestelar'
+        type:
+          type: string
+          enum: [movie, series, anime]
+          description: Tipo de conteúdo
+          example: movie
+        description:
+          type: string
+          description: Descrição do conteúdo
+          example: 'Um filme sobre viagem no tempo e espaço'
+        poster:
+          type: string
+          format: uri
+          description: URL do poster
+          example: 'https://example.com/poster.jpg'
+        year:
+          type: integer
+          description: Ano de lançamento
+          example: 2014
+        duration:
+          type: integer
+          description: Duração em minutos (filmes) ou número de episódios (séries)
+          example: 169
+        genres:
+          type: array
+          items:
+            type: string
+          description: Lista de gêneros
+          example: ['Ficção Científica', 'Drama']
+        rating:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Nota de 0 a 10
+          example: 8.6
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Nível de prioridade
+          example: high
+        isNew:
+          type: boolean
+          description: Indica se é um conteúdo novo
+          example: false
+        addedBy:
+          type: string
+          description: ID do perfil que adicionou
+          example: '507f1f77bcf86cd799439012'
+        addedAt:
+          type: string
+          format: date-time
+          description: Data de adição
+        watched:
+          type: boolean
+          description: Indica se já foi assistido
+          example: false
+        watchedAt:
+          type: string
+          format: date-time
+          description: Data que foi assistido
+          nullable: true
+        externalId:
+          type: string
+          description: ID da API externa (TMDB, etc.)
+          example: '157336'
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de criação
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data de atualização
+
+    Profile:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: string
+          description: ID único do perfil
+          example: '507f1f77bcf86cd799439012'
+        name:
+          type: string
+          description: Nome do perfil
+          example: 'Você'
+        avatar:
+          type: string
+          format: uri
+          description: URL do avatar
+          nullable: true
+          example: 'https://example.com/avatar.jpg'
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de criação
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data de atualização
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro
+          example: 'Filme não encontrado'
+        message:
+          type: string
+          description: Detalhes do erro
+          example: 'O filme com ID 507f1f77bcf86cd799439011 não foi encontrado'
+
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Mensagem de sucesso
+          example: 'Operação realizada com sucesso'
+

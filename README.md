@@ -80,6 +80,7 @@ docker compose up
 3. Acesse:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:5000/api
+- **Documentação Swagger**: http://localhost:5000/docs
 - **MongoDB**: localhost:27017
 
 ### Comandos Docker Úteis
@@ -137,6 +138,35 @@ O projeto inclui 3 serviços que são iniciados automaticamente:
 
 Todos os serviços são iniciados automaticamente com `docker compose up`.
 
+## 📚 Documentação da API
+
+A documentação completa da API está disponível em formato Swagger/OpenAPI:
+
+### Acessar Documentação Interativa
+**http://localhost:5000/docs**
+
+A documentação Swagger permite:
+- ✅ Visualizar todos os endpoints disponíveis
+- ✅ Testar requisições diretamente no navegador
+- ✅ Ver exemplos de requisições e respostas
+- ✅ Entender os modelos de dados
+
+### Documentação em Markdown
+Também está disponível em: [`docs/API.md`](docs/API.md)
+
+### Endpoints Principais
+
+- `GET /api/health` - Health check
+- `GET /api/movies` - Lista todos os filmes/séries/animes
+- `POST /api/movies` - Adiciona novo conteúdo
+- `GET /api/movies/:id` - Busca conteúdo por ID
+- `PUT /api/movies/:id` - Atualiza conteúdo
+- `DELETE /api/movies/:id` - Remove conteúdo
+- `GET /api/profiles` - Lista todos os perfis
+- `POST /api/profiles` - Cria novo perfil
+- `GET /api/profiles/:id` - Busca perfil por ID
+- `PUT /api/profiles/:id` - Atualiza perfil
+
 ### Scripts NPM (Opcional)
 
 Se preferir usar npm scripts ao invés de comandos Docker diretos:
@@ -167,13 +197,14 @@ A aplicação foi desenvolvida com foco em:
 - [x] Tela inicial
 - [x] Docker configuration
 - [x] Estrutura modular
+- [x] Documentação Swagger/OpenAPI
 
 ### Fase 2 - Funcionalidades Core
 - [ ] Sistema de perfis (criar, editar, gerenciar)
 - [ ] CRUD de filmes/séries/animes
 - [ ] Sistema de prioridades
 - [ ] Marcação de "novo"
-- [ ] Banco de dados (MongoDB/PostgreSQL)
+- [x] Banco de dados (MongoDB configurado)
 
 ### Fase 3 - Sorteio e Jogo
 - [ ] Algoritmo de sorteio inteligente

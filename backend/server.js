@@ -1,6 +1,8 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import swaggerUi from 'swagger-ui-express'
+import swaggerSpec from './config/swagger.js'
 import connectDB from './config/database.js'
 import indexRoutes from './routes/index.js'
 import moviesRoutes from './routes/movies.js'
@@ -15,6 +17,12 @@ const PORT = process.env.PORT || 5000
 app.use(cors())
 app.use(express.json())
 
+// Swagger Documentation
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'What Watch Next API - Documentação',
+}))
+
 // Connect to MongoDB
 connectDB()
 
@@ -27,5 +35,6 @@ app.use('/api/profiles', profilesRoutes)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`)
   console.log(`📡 API available at http://localhost:${PORT}/api`)
+  console.log(`📚 Documentation available at http://localhost:${PORT}/docs`)
 })
 

@@ -2,22 +2,22 @@ import express from 'express'
 
 const router = express.Router()
 
-// GET /api/movies - Lista todos os filmes
+// GET /api/movies - Lista todos os filmes, séries e animes
 router.get('/', (req, res) => {
   // TODO: Implementar busca de filmes
   res.json({ movies: [] })
+})
+
+// POST /api/movies - Adiciona novo filme, série ou anime
+router.post('/', (req, res) => {
+  // TODO: Implementar criação de filme
+  res.json({ message: 'Filme criado com sucesso', movie: req.body })
 })
 
 // GET /api/movies/:id - Busca filme por ID
 router.get('/:id', (req, res) => {
   // TODO: Implementar busca por ID
   res.json({ movie: null })
-})
-
-// POST /api/movies - Adiciona novo filme
-router.post('/', (req, res) => {
-  // TODO: Implementar criação de filme
-  res.json({ message: 'Filme criado com sucesso', movie: req.body })
 })
 
 // PUT /api/movies/:id - Atualiza filme

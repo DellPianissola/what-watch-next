@@ -8,16 +8,16 @@ router.get('/', (req, res) => {
   res.json({ profiles: [] })
 })
 
-// GET /api/profiles/:id - Busca perfil por ID
-router.get('/:id', (req, res) => {
-  // TODO: Implementar busca por ID
-  res.json({ profile: null })
-})
-
 // POST /api/profiles - Cria novo perfil
 router.post('/', (req, res) => {
   // TODO: Implementar criação de perfil
   res.json({ message: 'Perfil criado com sucesso', profile: req.body })
+})
+
+// GET /api/profiles/:id - Busca perfil por ID
+router.get('/:id', (req, res) => {
+  // TODO: Implementar busca por ID
+  res.json({ profile: null })
 })
 
 // PUT /api/profiles/:id - Atualiza perfil
