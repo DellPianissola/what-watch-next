@@ -32,7 +32,7 @@ model Movie {
   year        Int?
   duration    Int?     // Duração em minutos (filmes) ou episódios (séries)
   genres      String[] // Array de gêneros
-  rating      Float?   @db.Decimal(3, 1) // Nota de 0 a 10
+  rating      Decimal? @db.Decimal(3, 1) // Nota de 0 a 10
   priority    Priority @default(MEDIUM)
   isNew       Boolean  @default(false)
   watched     Boolean  @default(false)

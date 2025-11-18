@@ -7,6 +7,7 @@ import connectDB from './config/database.js'
 import indexRoutes from './routes/index.js'
 import moviesRoutes from './routes/movies.js'
 import profilesRoutes from './routes/profiles.js'
+import externalRoutes from './routes/external.js'
 
 dotenv.config()
 
@@ -30,6 +31,7 @@ connectDB()
 app.use('/api', indexRoutes)
 app.use('/api/movies', moviesRoutes)
 app.use('/api/profiles', profilesRoutes)
+app.use('/api/external', externalRoutes)
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {

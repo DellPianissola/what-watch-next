@@ -1,0 +1,234 @@
+import axios from 'axios'
+
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3'
+const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500'
+
+class TMDBService {
+  constructor() {
+    this.apiKey = process.env.TMDB_API_KEY
+    if (!this.apiKey) {
+      console.warn('⚠️ TMDB_API_KEY não configurada. Algumas funcionalidades podem não funcionar.')
+    }
+    this.genreCache = {
+      movie: null,
+      tv: null,
+    }
+  }
+
+  /**
+   * Busca lista de gêneros do TMDB
+   */
+  async getGenres(type = 'movie') {
+    if (this.genreCache[type]) {
+      return this.genreCache[type]
+    }
+
+    try {
+      const endpoint = type === 'movie' ? '/genre/movie/list' : '/genre/tv/list'
+      const response = await axios.get(`${TMDB_BASE_URL}${endpoint}`, {
+        params: {
+          api_key: this.apiKey,
+          language: 'pt-BR',
+        },
+      })
+
+      this.genreCache[type] = response.data.genres.reduce((acc, genre) => {
+        acc[genre.id] = genre.name
+        return acc
+      }, {})
+
+      return this.genreCache[type]
+    } catch (error) {
+      console.error('Erro ao buscar gêneros:', error.message)
+      return {}
+    }
+  }
+
+  /**
+   * Converte IDs de gêneros para nomes
+   */
+  async mapGenreIds(genreIds, type = 'movie') {
+    if (!genreIds || genreIds.length === 0) return []
+    
+    const genres = await this.getGenres(type)
+    return genreIds.map(id => genres[id]).filter(Boolean)
+  }
+
+  async search(query, type = 'multi', page = 1) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const endpoint = type === 'multi' 
+        ? '/search/multi' 
+        : type === 'movie' 
+        ? '/search/movie' 
+        : '/search/tv'
+
+      const response = await axios.get(`${TMDB_BASE_URL}${endpoint}`, {
+        params: {
+          api_key: this.apiKey,
+          query,
+          page,
+          language: 'pt-BR',
+        },
+      })
+
+      return await this.formatResults(response.data.results, type)
+    } catch (error) {
+      console.error('Erro ao buscar no TMDB:', error.message)
+      throw new Error(`Erro ao buscar no TMDB: ${error.message}`)
+    }
+  }
+
+  async getPopularMovies(page = 1) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const response = await axios.get(`${TMDB_BASE_URL}/movie/popular`, {
+        params: {
+          api_key: this.apiKey,
+          page,
+          language: 'pt-BR',
+        },
+      })
+
+      return await this.formatResults(response.data.results, 'movie')
+    } catch (error) {
+      console.error('Erro ao buscar filmes populares:', error.message)
+      throw new Error(`Erro ao buscar filmes populares: ${error.message}`)
+    }
+  }
+
+  async getPopularSeries(page = 1) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const response = await axios.get(`${TMDB_BASE_URL}/tv/popular`, {
+        params: {
+          api_key: this.apiKey,
+          page,
+          language: 'pt-BR',
+        },
+      })
+
+      return await this.formatResults(response.data.results, 'tv')
+    } catch (error) {
+      console.error('Erro ao buscar séries populares:', error.message)
+      throw new Error(`Erro ao buscar séries populares: ${error.message}`)
+    }
+  }
+
+  async getMovieDetails(id) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const response = await axios.get(`${TMDB_BASE_URL}/movie/${id}`, {
+        params: {
+          api_key: this.apiKey,
+          language: 'pt-BR',
+          append_to_response: 'videos,credits',
+        },
+      })
+
+      return this.formatMovieDetails(response.data)
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do filme:', error.message)
+      throw new Error(`Erro ao buscar detalhes do filme: ${error.message}`)
+    }
+  }
+
+  async getSeriesDetails(id) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const response = await axios.get(`${TMDB_BASE_URL}/tv/${id}`, {
+        params: {
+          api_key: this.apiKey,
+          language: 'pt-BR',
+          append_to_response: 'videos,credits',
+        },
+      })
+
+      return this.formatSeriesDetails(response.data)
+    } catch (error) {
+      console.error('Erro ao buscar detalhes da série:', error.message)
+      throw new Error(`Erro ao buscar detalhes da série: ${error.message}`)
+    }
+  }
+
+  async formatResults(results, type) {
+    const genreType = type === 'movie' ? 'movie' : type === 'tv' ? 'tv' : 'movie'
+    const genres = await this.getGenres(genreType)
+    
+    return Promise.all(results.map(async (item) => {
+      const itemType = type === 'movie' ? 'MOVIE' : type === 'tv' ? 'SERIES' : item.media_type === 'movie' ? 'MOVIE' : 'SERIES'
+      const itemGenreType = itemType === 'MOVIE' ? 'movie' : 'tv'
+      const genreNames = await this.mapGenreIds(item.genre_ids, itemGenreType)
+      
+      return {
+        id: item.id,
+        title: item.title || item.name,
+        type: itemType,
+        description: item.overview,
+        poster: item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : null,
+        year: item.release_date ? new Date(item.release_date).getFullYear() : null,
+        rating: item.vote_average ? parseFloat(item.vote_average.toFixed(1)) : null,
+        genres: genreNames,
+        externalId: item.id.toString(),
+        source: 'TMDB',
+      }
+    }))
+  }
+
+  formatMovieDetails(data) {
+    return {
+      id: data.id,
+      title: data.title,
+      type: 'MOVIE',
+      description: data.overview,
+      poster: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : null,
+      year: data.release_date ? new Date(data.release_date).getFullYear() : null,
+      duration: data.runtime,
+      genres: data.genres?.map(g => g.name) || [],
+      rating: data.vote_average ? parseFloat(data.vote_average.toFixed(1)) : null,
+      externalId: data.id.toString(),
+      source: 'TMDB',
+      director: data.credits?.crew?.find(c => c.job === 'Director')?.name || null,
+      cast: data.credits?.cast?.slice(0, 5).map(a => a.name) || [],
+      trailer: data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube')?.key || null,
+    }
+  }
+
+  formatSeriesDetails(data) {
+    return {
+      id: data.id,
+      title: data.name,
+      type: 'SERIES',
+      description: data.overview,
+      poster: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : null,
+      year: data.first_air_date ? new Date(data.first_air_date).getFullYear() : null,
+      duration: data.episode_run_time?.[0] || null,
+      genres: data.genres?.map(g => g.name) || [],
+      rating: data.vote_average ? parseFloat(data.vote_average.toFixed(1)) : null,
+      externalId: data.id.toString(),
+      source: 'TMDB',
+      seasons: data.number_of_seasons,
+      episodes: data.number_of_episodes,
+      cast: data.credits?.cast?.slice(0, 5).map(a => a.name) || [],
+      trailer: data.videos?.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube')?.key || null,
+    }
+  }
+}
+
+export default new TMDBService()
+

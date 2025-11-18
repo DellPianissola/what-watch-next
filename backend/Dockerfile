@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Instala OpenSSL e outras dependências necessárias para o Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 # Instala Prisma CLI globalmente (opcional, mas útil)
 RUN npm install -g prisma
 
