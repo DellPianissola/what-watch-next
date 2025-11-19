@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getMovies, deleteMovie, updateMovie } from '../services/api.js'
 import './MyList.css'
 
 const MyList = () => {
+  const navigate = useNavigate()
   const [movies, setMovies] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState({
@@ -73,10 +75,76 @@ const MyList = () => {
     }
   }
 
+  // Organiza filmes por categoria
+  const moviesByCategory = {
+    movies: movies.filter(m => m.type === 'MOVIE'),
+    series: movies.filter(m => m.type === 'SERIES'),
+    animes: movies.filter(m => m.type === 'ANIME'),
+  }
+
+  const renderMovieCard = (movie) => (
+    <div key={movie.id} className={`movie-card ${movie.watched ? 'watched' : ''}`}>
+      {movie.poster && (
+        <img src={movie.poster} alt={movie.title} className="movie-poster" />
+      )}
+      <div className="movie-info">
+        <div className="movie-header">
+          <h3>{movie.title}</h3>
+          {movie.isNew && <span className="new-badge">NOVO</span>}
+        </div>
+        <p className="movie-type">
+          {movie.type === 'MOVIE' ? 'Filme' : 
+           movie.type === 'SERIES' ? 'Série' : 
+           movie.type === 'ANIME' ? 'Anime' : movie.type}
+        </p>
+        {movie.description && (
+          <p className="movie-description">
+            {movie.description.substring(0, 100)}...
+          </p>
+        )}
+        <div className="movie-meta">
+          {movie.year && <span>📅 {movie.year}</span>}
+          {movie.rating && <span>⭐ {movie.rating}</span>}
+          {movie.genres && movie.genres.length > 0 && (
+            <span>🎭 {movie.genres.slice(0, 2).join(', ')}</span>
+          )}
+        </div>
+        <div className="movie-footer">
+          <div className="priority-badge" style={{ backgroundColor: getPriorityColor(movie.priority) }}>
+            {getPriorityLabel(movie.priority)}
+          </div>
+          <span className="added-by">Por: {movie.addedBy?.name || 'Desconhecido'}</span>
+        </div>
+        <div className="movie-actions">
+          <button
+            onClick={() => handleToggleWatched(movie)}
+            className={`btn-toggle ${movie.watched ? 'watched' : ''}`}
+          >
+            {movie.watched ? '✅ Assistido' : '⭕ Não assistido'}
+          </button>
+          <button
+            onClick={() => handleDelete(movie.id)}
+            className="btn-delete"
+          >
+            🗑️ Remover
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="mylist-page">
       <div className="mylist-container">
-        <h2>Minha Lista</h2>
+        <div className="mylist-header">
+          <h2>Minha Lista</h2>
+          <button 
+            className="btn-add-new"
+            onClick={() => navigate('/search')}
+          >
+            ➕ Adicionar
+          </button>
+        </div>
 
         <div className="filters">
           <select
@@ -106,60 +174,51 @@ const MyList = () => {
         ) : movies.length === 0 ? (
           <div className="empty-state">
             <p>Nenhum filme adicionado ainda</p>
-            <p className="empty-hint">Use a busca para adicionar filmes à sua lista!</p>
+            <p className="empty-hint">Clique em "Adicionar" para buscar e adicionar filmes à sua lista!</p>
+            <button 
+              className="btn-add-empty"
+              onClick={() => navigate('/search')}
+            >
+              ➕ Adicionar Primeiro Filme
+            </button>
           </div>
         ) : (
-          <div className="movies-grid">
-            {movies.map((movie) => (
-              <div key={movie.id} className={`movie-card ${movie.watched ? 'watched' : ''}`}>
-                {movie.poster && (
-                  <img src={movie.poster} alt={movie.title} className="movie-poster" />
-                )}
-                <div className="movie-info">
-                  <div className="movie-header">
-                    <h3>{movie.title}</h3>
-                    {movie.isNew && <span className="new-badge">NOVO</span>}
-                  </div>
-                  <p className="movie-type">
-                    {movie.type === 'MOVIE' ? 'Filme' : 
-                     movie.type === 'SERIES' ? 'Série' : 
-                     movie.type === 'ANIME' ? 'Anime' : movie.type}
-                  </p>
-                  {movie.description && (
-                    <p className="movie-description">
-                      {movie.description.substring(0, 100)}...
-                    </p>
-                  )}
-                  <div className="movie-meta">
-                    {movie.year && <span>📅 {movie.year}</span>}
-                    {movie.rating && <span>⭐ {movie.rating}</span>}
-                    {movie.genres && movie.genres.length > 0 && (
-                      <span>🎭 {movie.genres.slice(0, 2).join(', ')}</span>
-                    )}
-                  </div>
-                  <div className="movie-footer">
-                    <div className="priority-badge" style={{ backgroundColor: getPriorityColor(movie.priority) }}>
-                      {getPriorityLabel(movie.priority)}
-                    </div>
-                    <span className="added-by">Por: {movie.addedBy?.name || 'Desconhecido'}</span>
-                  </div>
-                  <div className="movie-actions">
-                    <button
-                      onClick={() => handleToggleWatched(movie)}
-                      className={`btn-toggle ${movie.watched ? 'watched' : ''}`}
-                    >
-                      {movie.watched ? '✅ Assistido' : '⭕ Não assistido'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(movie.id)}
-                      className="btn-delete"
-                    >
-                      🗑️ Remover
-                    </button>
-                  </div>
+          <div className="movies-by-category">
+            {/* Filmes */}
+            {moviesByCategory.movies.length > 0 && (
+              <div className="category-section">
+                <h3 className="category-title">🎬 Filmes ({moviesByCategory.movies.length})</h3>
+                <div className="movies-grid">
+                  {moviesByCategory.movies.map((movie) => (
+                    renderMovieCard(movie)
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Séries */}
+            {moviesByCategory.series.length > 0 && (
+              <div className="category-section">
+                <h3 className="category-title">📺 Séries ({moviesByCategory.series.length})</h3>
+                <div className="movies-grid">
+                  {moviesByCategory.series.map((movie) => (
+                    renderMovieCard(movie)
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Animes */}
+            {moviesByCategory.animes.length > 0 && (
+              <div className="category-section">
+                <h3 className="category-title">🎌 Animes ({moviesByCategory.animes.length})</h3>
+                <div className="movies-grid">
+                  {moviesByCategory.animes.map((movie) => (
+                    renderMovieCard(movie)
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

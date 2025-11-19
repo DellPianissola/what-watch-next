@@ -6,6 +6,8 @@ import './Home.css'
 const Home = () => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
+  const [selectedMovie, setSelectedMovie] = useState(null)
+  const [isDrawing, setIsDrawing] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -25,6 +27,54 @@ const Home = () => {
       })
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
+    }
+  }
+
+  const handleDraw = async () => {
+    setIsDrawing(true)
+    setSelectedMovie(null)
+    
+    try {
+      // Busca apenas filmes não assistidos
+      const response = await getMovies({ watched: 'false' })
+      const unwatchedMovies = response.data.movies
+
+      if (unwatchedMovies.length === 0) {
+        alert('Você não tem filmes não assistidos na sua lista!')
+        setIsDrawing(false)
+        return
+      }
+
+      // Algoritmo de sorteio considerando prioridades
+      const priorityWeights = {
+        URGENT: 10,
+        HIGH: 5,
+        MEDIUM: 2,
+        LOW: 1,
+      }
+
+      // Cria array com pesos baseados na prioridade
+      const weightedMovies = []
+      unwatchedMovies.forEach(movie => {
+        const weight = priorityWeights[movie.priority] || 1
+        for (let i = 0; i < weight; i++) {
+          weightedMovies.push(movie)
+        }
+      })
+
+      // Simula animação de sorteio
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Sorteia um filme
+      const randomIndex = Math.floor(Math.random() * weightedMovies.length)
+      const drawnMovie = weightedMovies[randomIndex]
+
+      setSelectedMovie(drawnMovie)
+    } catch (error) {
+      console.error('Erro ao sortear:', error)
+      alert('Erro ao sortear filme. Tente novamente.')
+    } finally {
+      setIsDrawing(false)
     }
   }
 
@@ -57,29 +107,62 @@ const Home = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="action-buttons">
+          <div className="action-buttons-main">
             <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/search')}
+              className="btn btn-primary btn-draw"
+              onClick={handleDraw}
+              disabled={isDrawing}
             >
-              <span className="btn-icon">🔍</span>
-              <span className="btn-text">Buscar</span>
+              <span className="btn-icon">🎲</span>
+              <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
             </button>
             <button 
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-list"
               onClick={() => navigate('/list')}
             >
               <span className="btn-icon">📋</span>
               <span className="btn-text">Minha Lista</span>
             </button>
-            <button 
-              className="btn btn-outline"
-              onClick={() => navigate('/profiles')}
-            >
-              <span className="btn-icon">👥</span>
-              <span className="btn-text">Perfis</span>
-            </button>
           </div>
+
+          {/* Resultado do Sorteio */}
+          {selectedMovie && (
+            <div className="draw-result">
+              <div className="draw-result-header">
+                <h3>🎉 Sorteado!</h3>
+                <button 
+                  className="btn-close-draw"
+                  onClick={() => setSelectedMovie(null)}
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="draw-result-content">
+                {selectedMovie.poster && (
+                  <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-poster" />
+                )}
+                <div className="draw-info">
+                  <h4>{selectedMovie.title}</h4>
+                  <p className="draw-type">
+                    {selectedMovie.type === 'MOVIE' ? 'Filme' : 
+                     selectedMovie.type === 'SERIES' ? 'Série' : 
+                     'Anime'}
+                  </p>
+                  {selectedMovie.description && (
+                    <p className="draw-description">{selectedMovie.description}</p>
+                  )}
+                  <div className="draw-actions">
+                    <button 
+                      className="btn-watch-now"
+                      onClick={() => navigate('/list')}
+                    >
+                      Ver na Lista
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Preview */}
           <div className="stats-preview">

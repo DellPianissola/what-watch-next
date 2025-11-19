@@ -121,7 +121,6 @@ router.post('/', async (req, res) => {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
       },
@@ -265,7 +264,6 @@ router.put('/:id', async (req, res) => {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
       },
