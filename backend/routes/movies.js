@@ -91,6 +91,40 @@ router.post('/', async (req, res) => {
 
     const addedById = profile.id
 
+    // Verifica se o filme já existe para este usuário
+    // Se tem externalId, verifica por ele primeiro (mais preciso)
+    if (externalId) {
+      const existingByExternalId = await prisma.movie.findFirst({
+        where: {
+          addedById,
+          externalId: externalId.toString(),
+        },
+      })
+      if (existingByExternalId) {
+        return res.status(400).json({ 
+          error: 'Este filme já está na sua lista' 
+        })
+      }
+    }
+
+    // Verifica por título e tipo (case insensitive)
+    const existingMovie = await prisma.movie.findFirst({
+      where: {
+        addedById,
+        type: type.toUpperCase(),
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+      },
+    })
+
+    if (existingMovie) {
+      return res.status(400).json({ 
+        error: 'Este filme já está na sua lista' 
+      })
+    }
+
     // Converte rating para Decimal se fornecido
     let ratingDecimal = null
     if (rating !== undefined && rating !== null) {

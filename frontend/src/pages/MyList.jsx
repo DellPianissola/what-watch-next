@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMovies, deleteMovie, updateMovie } from '../services/api.js'
+import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import './MyList.css'
 
 const MyList = () => {
@@ -82,56 +83,73 @@ const MyList = () => {
     animes: movies.filter(m => m.type === 'ANIME'),
   }
 
-  const renderMovieCard = (movie) => (
-    <div key={movie.id} className={`movie-card ${movie.watched ? 'watched' : ''}`}>
-      {movie.poster && (
-        <img src={movie.poster} alt={movie.title} className="movie-poster" />
-      )}
-      <div className="movie-info">
-        <div className="movie-header">
-          <h3>{movie.title}</h3>
-          {movie.isNew && <span className="new-badge">NOVO</span>}
-        </div>
-        <p className="movie-type">
-          {movie.type === 'MOVIE' ? 'Filme' : 
-           movie.type === 'SERIES' ? 'Série' : 
-           movie.type === 'ANIME' ? 'Anime' : movie.type}
-        </p>
-        {movie.description && (
-          <p className="movie-description">
-            {movie.description.substring(0, 100)}...
-          </p>
-        )}
-        <div className="movie-meta">
-          {movie.year && <span>📅 {movie.year}</span>}
-          {movie.rating && <span>⭐ {movie.rating}</span>}
-          {movie.genres && movie.genres.length > 0 && (
-            <span>🎭 {movie.genres.slice(0, 2).join(', ')}</span>
+  const renderMovieCard = (movie) => {
+    const genresText = movie.genres && movie.genres.length > 0 
+      ? movie.genres.join(', ') 
+      : 'Sem gênero'
+    const genresDisplay = movie.genres && movie.genres.length > 0 
+      ? movie.genres.join(', ') 
+      : 'Sem gênero'
+
+    return (
+      <div key={movie.id} className={`movie-card ${movie.watched ? 'watched' : ''}`}>
+        <div className="movie-poster-container">
+          {movie.poster ? (
+            <img src={movie.poster} alt={movie.title} className="movie-poster" />
+          ) : (
+            <PosterPlaceholder 
+              title={movie.title} 
+              type={movie.type}
+              className="movie-poster"
+            />
           )}
+          <span className="movie-type-badge">
+            {movie.type === 'MOVIE' ? 'Filme' : 
+             movie.type === 'SERIES' ? 'Série' : 
+             movie.type === 'ANIME' ? 'Anime' : movie.type}
+          </span>
         </div>
-        <div className="movie-footer">
-          <div className="priority-badge" style={{ backgroundColor: getPriorityColor(movie.priority) }}>
-            {getPriorityLabel(movie.priority)}
+        <div className="movie-info">
+          <div className="movie-header">
+            <h3>{movie.title}</h3>
+            {movie.isNew && <span className="new-badge">NOVO</span>}
           </div>
-          <span className="added-by">Por: {movie.addedBy?.name || 'Desconhecido'}</span>
-        </div>
-        <div className="movie-actions">
-          <button
-            onClick={() => handleToggleWatched(movie)}
-            className={`btn-toggle ${movie.watched ? 'watched' : ''}`}
-          >
-            {movie.watched ? '✅ Assistido' : '⭕ Não assistido'}
-          </button>
-          <button
-            onClick={() => handleDelete(movie.id)}
-            className="btn-delete"
-          >
-            🗑️ Remover
-          </button>
-        </div>
+          <div className="movie-footer-info">
+            <div className="priority-badge" style={{ backgroundColor: getPriorityColor(movie.priority) }}>
+              {getPriorityLabel(movie.priority)}
+            </div>
+            <span className="added-by">Por: {movie.addedBy?.name || 'Desconhecido'}</span>
+          </div>
+          <div className="movie-footer">
+            <div className="movie-meta">
+              <span>📅 {movie.year || 'Sem data'}</span>
+              <span>⭐ {movie.rating || 'Sem nota'}</span>
+              <span 
+                className="genres-span"
+                title={genresText}
+              >
+                🎭 {genresDisplay}
+              </span>
+            </div>
+            <div className="movie-actions">
+              <button
+                onClick={() => handleToggleWatched(movie)}
+                className={`btn-toggle ${movie.watched ? 'watched' : ''}`}
+              >
+                {movie.watched ? '✅ Assistido' : '⭕ Não assistido'}
+              </button>
+              <button
+                onClick={() => handleDelete(movie.id)}
+                className="btn-delete"
+              >
+                🗑️ Remover
+              </button>
+            </div>
+          </div>
       </div>
     </div>
-  )
+    )
+  }
 
   return (
     <div className="mylist-page">

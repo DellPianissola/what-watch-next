@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMovies } from '../services/api.js'
+import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import './Home.css'
 
 const Home = () => {
@@ -138,8 +139,14 @@ const Home = () => {
                 </button>
               </div>
               <div className="draw-result-content">
-                {selectedMovie.poster && (
+                {selectedMovie.poster ? (
                   <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-poster" />
+                ) : (
+                  <PosterPlaceholder 
+                    title={selectedMovie.title} 
+                    type={selectedMovie.type}
+                    className="draw-poster"
+                  />
                 )}
                 <div className="draw-info">
                   <h4>{selectedMovie.title}</h4>

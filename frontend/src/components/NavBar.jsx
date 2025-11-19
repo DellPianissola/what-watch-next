@@ -39,11 +39,10 @@ const NavBar = () => {
         <Link to="/list" className={isActive('/list') ? 'active' : ''}>
           📋 Minha Lista
         </Link>
-        <Link to="/profiles" className={isActive('/profiles') ? 'active' : ''}>
-          👤 Perfil
-        </Link>
         <div className="nav-user">
-          <span className="nav-username">{user?.username}</span>
+          <Link to="/profiles" className="nav-username-link">
+            {user?.username}
+          </Link>
           <button onClick={handleLogout} className="btn-logout">
             Sair
           </button>
