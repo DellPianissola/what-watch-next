@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { searchExternal, createMovie, getMovies, deleteMovie } from '../services/api.js'
+import { searchExternal, createMovie, getMovies, deleteMovie, getPopularMovies, getPopularSeries, getPopularAnimes } from '../services/api.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import './Search.css'
@@ -29,14 +29,33 @@ const Search = () => {
     }
   }, [profile])
 
-  // Busca automática com debounce
+  // Busca automática com debounce ou carrega populares
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current)
     }
 
     if (!query.trim()) {
-      setResults({ movies: [], series: [], animes: [] })
+      // Quando não há query, carrega os populares
+      setLoading(true)
+      Promise.all([
+        getPopularMovies(1),
+        getPopularSeries(1),
+        getPopularAnimes(1)
+      ])
+        .then(([moviesResponse, seriesResponse, animesResponse]) => {
+          setResults({
+            movies: moviesResponse.data.results || [],
+            series: seriesResponse.data.results || [],
+            animes: animesResponse.data.results || []
+          })
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar conteúdo popular:', error)
+        })
+        .finally(() => {
+          setLoading(false)
+        })
       return
     }
 
@@ -171,14 +190,34 @@ const Search = () => {
               <option value="series">Séries</option>
               <option value="anime">Animes</option>
             </select>
-            {loading && (
-              <div className="search-loading">Buscando...</div>
-            )}
           </div>
         </form>
 
 
-        {allResults.length > 0 && (
+        {loading && (
+          <div className="results-grid">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="result-card skeleton-card">
+                <div className="result-poster-container">
+                  <div className="skeleton-poster"></div>
+                </div>
+                <div className="result-info">
+                  <div className="skeleton-title"></div>
+                  <div className="result-footer">
+                    <div className="result-meta">
+                      <div className="skeleton-meta"></div>
+                      <div className="skeleton-meta"></div>
+                      <div className="skeleton-meta"></div>
+                    </div>
+                    <div className="skeleton-button"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && allResults.length > 0 && (
           <div className="results-grid">
             {allResults.map((item) => {
               const genresText = item.genres && item.genres.length > 0 
