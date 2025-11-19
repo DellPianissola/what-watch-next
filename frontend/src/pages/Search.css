@@ -9,25 +9,30 @@
   margin: 0 auto;
 }
 
-.search-container h2 {
-  color: var(--text);
-  margin-bottom: 2rem;
-  font-size: 2rem;
-}
-
 .search-form {
   margin-bottom: 2rem;
 }
 
-.search-input-group {
+.search-header {
   display: flex;
+  align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
 }
 
-.search-input {
+.search-type-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.search-input-group {
   flex: 1;
   min-width: 300px;
+}
+
+.search-input {
+  width: 100%;
   padding: 1rem;
   border: 2px solid var(--surface-light);
   border-radius: 12px;
@@ -41,14 +46,159 @@
   border-color: var(--primary);
 }
 
-.search-type-select {
-  padding: 1rem;
+.search-sort-filters {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.75rem 1.5rem;
   border: 2px solid var(--surface-light);
   border-radius: 12px;
   background: var(--surface);
   color: var(--text);
   font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-btn:hover {
+  border-color: var(--primary);
+  background: var(--surface-light);
+  transform: translateY(-2px);
+}
+
+.filter-btn.active {
+  background: var(--gradient-1);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.filter-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sort-btn {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--surface-light);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sort-btn:hover {
+  border-color: var(--primary);
+  background: var(--surface-light);
+  transform: translateY(-2px);
+}
+
+.sort-btn.active {
+  background: var(--gradient-2);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sort-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.genre-dropdown-wrapper {
+  position: relative;
+}
+
+.genre-dropdown-btn {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--surface-light);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.genre-dropdown-btn:hover {
+  border-color: var(--primary);
+  background: var(--surface-light);
+}
+
+.genre-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--surface);
+  border: 2px solid var(--surface-light);
+  border-radius: 12px;
+  padding: 0.5rem;
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.genre-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.genre-option:hover {
+  background: var(--surface-light);
+}
+
+.genre-option input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.genre-option span {
+  color: var(--text);
+  font-size: 0.9rem;
+  user-select: none;
+}
+
+.genre-dropdown-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .btn-search {
@@ -267,19 +417,142 @@
   font-size: 1.1rem;
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1.5rem 0;
+}
+
+.pagination-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--surface-light);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface-light);
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pagination-page {
+  min-width: 40px;
+  height: 40px;
+  padding: 0.5rem;
+  border: 2px solid var(--surface-light);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-page:hover {
+  border-color: var(--primary);
+  background: var(--surface-light);
+}
+
+.pagination-page.active {
+  background: var(--gradient-2);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-ellipsis {
+  color: var(--text-muted);
+  padding: 0 0.5rem;
+  user-select: none;
+}
+
 @media (max-width: 768px) {
-  .search-input-group {
+  .search-header {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .search-input,
-  .search-type-select,
-  .btn-search {
+  .search-type-filters {
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .search-input-group {
+    width: 100%;
+  }
+
+  .search-sort-filters {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .sort-buttons {
+    flex: 1;
+  }
+
+  .sort-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .genre-dropdown {
+    right: auto;
+    left: 0;
     width: 100%;
   }
 
   .results-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pagination-pages {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .pagination-page {
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
   }
 }
 
