@@ -1,7 +1,28 @@
 import express from 'express'
 import { prisma } from '../config/database.js'
+import { drawMovie } from '../services/lottery.js'
 
 const router = express.Router()
+
+const findUserProfile = async (userId) => {
+  return prisma.profile.findUnique({ where: { userId } })
+}
+
+// POST /api/movies/draw - Sorteia um filme não assistido com peso por prioridade
+router.post('/draw', async (req, res) => {
+  try {
+    const profile = await findUserProfile(req.user.id)
+    if (!profile) return res.status(404).json({ error: 'Perfil não encontrado' })
+
+    const movie = await drawMovie(profile.id)
+    if (!movie) return res.status(404).json({ error: 'Nenhum filme não assistido na lista' })
+
+    res.json({ movie })
+  } catch (error) {
+    console.error('Erro ao sortear:', error)
+    res.status(500).json({ error: 'Erro ao sortear filme' })
+  }
+})
 
 // GET /api/movies - Lista filmes do usuário autenticado
 router.get('/', async (req, res) => {

@@ -80,6 +80,7 @@ export const getMovieById = (id) => api.get(`/movies/${id}`)
 export const createMovie = (data) => api.post('/movies', data)
 export const updateMovie = (id, data) => api.put(`/movies/${id}`, data)
 export const deleteMovie = (id) => api.delete(`/movies/${id}`)
+export const drawMovie = () => api.post('/movies/draw')
 
 // Auth
 export const login = (email, password) => api.post('/auth/login', { email, password })

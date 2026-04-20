@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMovies } from '../services/api.js'
+import { getMovies, drawMovie } from '../services/api.js'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import './Home.css'
 
@@ -34,46 +34,17 @@ const Home = () => {
   const handleDraw = async () => {
     setIsDrawing(true)
     setSelectedMovie(null)
-    
+
     try {
-      // Busca apenas filmes não assistidos
-      const response = await getMovies({ watched: 'false' })
-      const unwatchedMovies = response.data.movies
-
-      if (unwatchedMovies.length === 0) {
-        alert('Você não tem filmes não assistidos na sua lista!')
-        setIsDrawing(false)
-        return
-      }
-
-      // Algoritmo de sorteio considerando prioridades
-      const priorityWeights = {
-        URGENT: 10,
-        HIGH: 5,
-        MEDIUM: 2,
-        LOW: 1,
-      }
-
-      // Cria array com pesos baseados na prioridade
-      const weightedMovies = []
-      unwatchedMovies.forEach(movie => {
-        const weight = priorityWeights[movie.priority] || 1
-        for (let i = 0; i < weight; i++) {
-          weightedMovies.push(movie)
-        }
-      })
-
-      // Simula animação de sorteio
       await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Sorteia um filme
-      const randomIndex = Math.floor(Math.random() * weightedMovies.length)
-      const drawnMovie = weightedMovies[randomIndex]
-
-      setSelectedMovie(drawnMovie)
+      const response = await drawMovie()
+      setSelectedMovie(response.data.movie)
     } catch (error) {
-      console.error('Erro ao sortear:', error)
-      alert('Erro ao sortear filme. Tente novamente.')
+      if (error.response?.status === 404) {
+        alert('Você não tem filmes não assistidos na sua lista!')
+      } else {
+        alert('Erro ao sortear filme. Tente novamente.')
+      }
     } finally {
       setIsDrawing(false)
     }
