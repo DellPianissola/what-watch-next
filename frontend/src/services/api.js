@@ -9,6 +9,68 @@ const api = axios.create({
   },
 })
 
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error)
+    else resolve(token)
+  })
+  failedQueue = []
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config
+
+    if (error.response?.status === 401 && !original._retry) {
+      const refreshToken = localStorage.getItem('refreshToken')
+
+      if (!refreshToken) {
+        return Promise.reject(error)
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then((token) => {
+          original.headers['Authorization'] = `Bearer ${token}`
+          return api(original)
+        })
+      }
+
+      original._retry = true
+      isRefreshing = true
+
+      try {
+        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken })
+        const { accessToken, refreshToken: newRefreshToken } = data
+
+        localStorage.setItem('accessToken', accessToken)
+        localStorage.setItem('refreshToken', newRefreshToken)
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+
+        processQueue(null, accessToken)
+        original.headers['Authorization'] = `Bearer ${accessToken}`
+        return api(original)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        delete api.defaults.headers.common['Authorization']
+        window.location.href = '/login'
+        return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
+
 // Health check
 export const checkHealth = () => api.get('/health')
 
@@ -30,26 +92,25 @@ export const createProfile = (data) => api.post('/profiles', data)
 export const updateProfile = (id, data) => api.put('/profiles', data)
 
 // External APIs
-export const searchExternal = (query, type, page = 1) => 
+export const searchExternal = (query, type, page = 1) =>
   api.get('/external/search', { params: { q: query, type, page } })
 
-export const getPopularMovies = (page = 1) => 
+export const getPopularMovies = (page = 1) =>
   api.get('/external/movies', { params: { page } })
 
-export const getPopularSeries = (page = 1) => 
+export const getPopularSeries = (page = 1) =>
   api.get('/external/series', { params: { page } })
 
-export const getPopularAnimes = (page = 1) => 
+export const getPopularAnimes = (page = 1) =>
   api.get('/external/animes', { params: { page } })
 
-export const getMovieDetails = (id) => 
+export const getMovieDetails = (id) =>
   api.get(`/external/movies/${id}`)
 
-export const getSeriesDetails = (id) => 
+export const getSeriesDetails = (id) =>
   api.get(`/external/series/${id}`)
 
-export const getAnimeDetails = (id) => 
+export const getAnimeDetails = (id) =>
   api.get(`/external/animes/${id}`)
 
 export default api
-

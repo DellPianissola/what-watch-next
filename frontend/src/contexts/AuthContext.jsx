@@ -15,46 +15,41 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [token, setToken] = useState(localStorage.getItem('accessToken'))
 
   const logout = () => {
     setUser(null)
     setProfile(null)
     setToken(null)
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    delete api.defaults.headers.common['Authorization']
   }
 
-  // Configura o token no axios quando muda
   useEffect(() => {
     if (token) {
-      localStorage.setItem('token', token)
+      localStorage.setItem('accessToken', token)
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
     } else {
-      localStorage.removeItem('token')
+      localStorage.removeItem('accessToken')
       delete api.defaults.headers.common['Authorization']
     }
   }, [token])
 
-  // Verifica se o usuário está autenticado ao carregar
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('token')
+      const storedToken = localStorage.getItem('accessToken')
       if (storedToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
         try {
-          setToken(storedToken)
           const response = await api.get('/auth/me')
           setUser(response.data.user)
-          // Busca o perfil separadamente
-          try {
-            const profileResponse = await api.get('/profiles')
-            setProfile(profileResponse.data.profile)
-          } catch (profileError) {
-            // Perfil pode não existir ainda, isso é ok
-            console.log('Perfil ainda não criado')
-          }
-        } catch (error) {
-          console.error('Erro ao verificar autenticação:', error)
-          logout()
+          setProfile(response.data.user?.profile || null)
+        } catch {
+          // interceptor já tenta refresh; se chegar aqui, ambos falharam
+          setUser(null)
+          setProfile(null)
+          setToken(null)
         }
       }
       setLoading(false)
@@ -65,20 +60,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { user, profile, token } = response.data
+      const { user, profile, accessToken, refreshToken } = response.data
       setUser(user)
       setProfile(profile)
-      setToken(token)
-      // Busca o perfil completo após login
-      if (token) {
-        try {
-          const profileResponse = await api.get('/profiles')
-          setProfile(profileResponse.data.profile)
-        } catch (profileError) {
-          // Perfil pode não existir ainda
-          console.log('Perfil ainda não criado')
-        }
-      }
+      setToken(accessToken)
+      localStorage.setItem('refreshToken', refreshToken)
       return { success: true }
     } catch (error) {
       return {
@@ -90,15 +76,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, username, password) => {
     try {
-      const response = await api.post('/auth/register', {
-        email,
-        username,
-        password,
-      })
-      const { user, profile, token } = response.data
+      const response = await api.post('/auth/register', { email, username, password })
+      const { user, profile, accessToken, refreshToken } = response.data
       setUser(user)
       setProfile(profile)
-      setToken(token)
+      setToken(accessToken)
+      localStorage.setItem('refreshToken', refreshToken)
       return { success: true }
     } catch (error) {
       return {
@@ -129,4 +112,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   )
 }
-
