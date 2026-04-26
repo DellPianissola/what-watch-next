@@ -1,8 +1,8 @@
 /**
  * Wrapper para handlers async do Express.
  *
- * Captura exceções rejeitadas (que o Express não pega sozinho em handlers async)
- * e repassa pro middleware central de erros via `next(err)`.
+ * Captura exceções (síncronas ou assíncronas) e repassa pro middleware
+ * central de erros via `next(err)`.
  *
  * Uso:
  *   router.get('/foo', asyncHandler(async (req, res) => {
@@ -13,6 +13,10 @@
  * Sem isso, qualquer `throw` ou `Promise.reject` dentro de um handler async
  * vira um unhandled rejection — o Express não sabe lidar com isso por padrão.
  */
-export const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next)
+export const asyncHandler = (fn) => async (req, res, next) => {
+  try {
+    await fn(req, res, next)
+  } catch (err) {
+    next(err)
+  }
 }
