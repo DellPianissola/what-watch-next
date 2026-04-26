@@ -18,6 +18,10 @@ else
 fi
 
 echo "✅ Banco de dados pronto!"
+
+echo "🌱 Executando seed..."
+node prisma/seed.js
+
 echo "🚀 Iniciando servidor..."
 
 # Inicia o servidor

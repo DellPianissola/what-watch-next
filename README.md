@@ -1,6 +1,6 @@
 # 🎬 What Watch Next
 
-Uma aplicação moderna e divertida para casais escolherem o que assistir juntos! Com sistema de perfis, prioridades, sorteio inteligente e muito mais.
+Uma aplicação moderna e divertida para casais ou grupo de amigos escolherem o que assistir juntos! Com sistema de perfis, prioridades, sorteio inteligente e muito mais.
 
 ## ✨ Funcionalidades
 
@@ -8,7 +8,6 @@ Uma aplicação moderna e divertida para casais escolherem o que assistir juntos
 - **Sistema de Perfis**: Cada pessoa pode adicionar seus próprios filmes, séries e animes
 - **Categorias de Prioridade**: Organize seus favoritos por nível de importância
 - **Sorteio Inteligente**: Algoritmo que considera preferências e prioridades
-- **Avisos de Novidades**: Fique por dentro quando um filme novo é adicionado
 - **Integração com APIs**: Preparado para integração com APIs públicas de filmes (TMDB, etc.)
 
 ### 🚀 Em Desenvolvimento

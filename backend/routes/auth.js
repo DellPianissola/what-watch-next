@@ -8,9 +8,9 @@ const router = express.Router()
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const generateTokens = (userId, email) => {
+const generateTokens = (userId, username) => {
   const accessToken = jwt.sign(
-    { userId, email },
+    { userId, username },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
   )
@@ -35,11 +35,6 @@ const validateRegistrationInput = (email, username, password) => {
   return null
 }
 
-const checkEmailAlreadyExists = async (email) => {
-  const existing = await prisma.user.findUnique({ where: { email } })
-  return !!existing
-}
-
 const checkUsernameAlreadyExists = async (username) => {
   const existing = await prisma.user.findUnique({ where: { username } })
   return !!existing
@@ -49,7 +44,7 @@ const createUser = async (email, username, password) => {
   const hashedPassword = await bcrypt.hash(password, 10)
   return prisma.user.create({
     data: { email, username, password: hashedPassword },
-    select: { id: true, email: true, username: true, createdAt: true },
+    select: { id: true, email: true, username: true, isAdmin: true, createdAt: true },
   })
 }
 
@@ -59,9 +54,9 @@ const createProfile = async (username, userId) => {
   })
 }
 
-const findUserByEmail = async (email) => {
+const findUserByUsername = async (username) => {
   return prisma.user.findUnique({
-    where: { email },
+    where: { username },
     include: { profile: true },
   })
 }
@@ -77,6 +72,7 @@ const findUserWithProfile = async (userId) => {
       id: true,
       email: true,
       username: true,
+      isAdmin: true,
       createdAt: true,
       profile: {
         select: {
@@ -103,7 +99,7 @@ const decodeRefreshToken = (refreshToken) => {
 const findUserById = async (userId) => {
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true },
+    select: { id: true, username: true },
   })
 }
 
@@ -117,16 +113,13 @@ router.post('/register', async (req, res) => {
     const validationError = validateRegistrationInput(email, username, password)
     if (validationError) return res.status(400).json({ error: validationError })
 
-    if (await checkEmailAlreadyExists(email)) {
-      return res.status(400).json({ error: 'Email já cadastrado' })
-    }
     if (await checkUsernameAlreadyExists(username)) {
       return res.status(400).json({ error: 'Nome de usuário já cadastrado' })
     }
 
     const user = await createUser(email, username, password)
     const profile = await createProfile(username, user.id)
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email)
+    const { accessToken, refreshToken } = generateTokens(user.id, user.username)
 
     res.status(201).json({ message: 'Usuário criado com sucesso', user, profile, accessToken, refreshToken })
   } catch (error) {
@@ -138,23 +131,23 @@ router.post('/register', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { username, password } = req.body
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email e senha são obrigatórios' })
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Usuário e senha são obrigatórios' })
     }
 
-    const user = await findUserByEmail(email)
-    if (!user) return res.status(401).json({ error: 'Email ou senha inválidos' })
+    const user = await findUserByUsername(username)
+    if (!user) return res.status(401).json({ error: 'Usuário ou senha inválidos' })
 
     const passwordMatch = await validatePassword(password, user.password)
-    if (!passwordMatch) return res.status(401).json({ error: 'Email ou senha inválidos' })
+    if (!passwordMatch) return res.status(401).json({ error: 'Usuário ou senha inválidos' })
 
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email)
+    const { accessToken, refreshToken } = generateTokens(user.id, user.username)
 
     res.json({
       message: 'Login realizado com sucesso',
-      user: { id: user.id, email: user.email, username: user.username, createdAt: user.createdAt },
+      user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin, createdAt: user.createdAt },
       profile: user.profile,
       accessToken,
       refreshToken,
@@ -188,7 +181,7 @@ router.post('/refresh', async (req, res) => {
     const user = await findUserById(decoded.userId)
     if (!user) return res.status(401).json({ error: 'Usuário não encontrado' })
 
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.email)
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.username)
 
     res.json({ accessToken, refreshToken: newRefreshToken })
   } catch (error) {

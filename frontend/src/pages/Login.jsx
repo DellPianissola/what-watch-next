@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import './Login.css'
 
 const Login = () => {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,7 +16,7 @@ const Login = () => {
     setError('')
     setLoading(true)
 
-    const result = await login(email, password)
+    const result = await login(username, password)
 
     if (result.success) {
       navigate('/')
@@ -40,13 +40,13 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="username">Usuário</label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="seu_usuario"
                 required
                 disabled={loading}
               />
