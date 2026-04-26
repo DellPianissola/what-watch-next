@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import OnboardingHeader from '../components/OnboardingHeader.jsx'
-import OnboardingFooter from '../components/OnboardingFooter.jsx'
 import './Search.css'
 
 const parsePageParam = (value) => {
@@ -386,6 +385,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
           count={userMovies.length}
           target={ONBOARDING_TARGET}
           onSkip={() => onSkip?.()}
+          onComplete={() => onComplete?.()}
         />
       )}
 
@@ -622,13 +622,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
         )}
       </div>
 
-      {isOnboarding && (
-        <OnboardingFooter
-          count={userMovies.length}
-          target={ONBOARDING_TARGET}
-          onComplete={() => onComplete?.()}
-        />
-      )}
     </div>
   )
 }

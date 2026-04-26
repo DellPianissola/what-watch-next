@@ -169,6 +169,40 @@ Também está disponível em: [`docs/API.md`](docs/API.md)
 - `GET /api/profiles/:id` - Busca perfil por ID
 - `PUT /api/profiles/:id` - Atualiza perfil
 
+## 🧪 Testes (Backend)
+
+O backend tem dois níveis de teste separados.
+
+### Testes unitários
+Testam `lib/`, `middleware/` e `services/external.js` com mocks. Não precisam de banco.
+
+```bash
+cd backend
+npm test               # roda os testes
+npm run test:coverage  # com relatório de coverage
+```
+
+### Testes de integração
+Testam os services com um banco PostgreSQL real (isolado do banco de dev).
+
+```bash
+# 1. Sobe o banco de testes (só na primeira vez ou após docker compose down)
+npm run test:db
+
+# 2. Roda os testes
+npm run test:integration
+npm run test:integration:coverage
+```
+
+### Todos de uma vez
+```bash
+npm run test:all
+```
+
+> O banco de testes usa a porta **5433** e só sobe com `--profile test`, sem interferir no stack de dev (porta 5432).
+
+---
+
 ### Scripts NPM (Opcional)
 
 Se preferir usar npm scripts ao invés de comandos Docker diretos:
