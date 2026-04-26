@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './config/swagger.js'
 import connectDB from './config/database.js'
 import { authenticateToken } from './middleware/auth.js'
+import { errorHandler } from './middleware/errorHandler.js'
 import indexRoutes from './routes/index.js'
 import authRoutes from './routes/auth.js'
 import moviesRoutes from './routes/movies.js'
@@ -37,6 +38,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/movies', authenticateToken, moviesRoutes)
 app.use('/api/profiles', authenticateToken, profilesRoutes)
 app.use('/api/external', authenticateToken, externalRoutes)
+
+// Middleware central de erros — DEVE ser o último middleware registrado.
+app.use(errorHandler)
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
