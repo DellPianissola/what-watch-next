@@ -3,39 +3,85 @@ import axios from 'axios'
 const JIKAN_BASE_URL = 'https://api.jikan.moe/v4'
 
 class JikanService {
-  async search(query, page = 1) {
-    try {
-      const response = await axios.get(`${JIKAN_BASE_URL}/anime`, {
-        params: {
-          q: query,
-          page,
-          limit: 20,
-        },
-      })
+  constructor() {
+    this._genreCache = null
+  }
 
-      return {
-        results: this.formatResults(response.data.data),
-        totalPages: response.data.pagination?.last_visible_page || 1,
+  /**
+   * Carrega e cacheia os gêneros do Jikan (mapa nome → mal_id)
+   */
+  async _loadGenres() {
+    if (this._genreCache) return this._genreCache
+    try {
+      const response = await axios.get(`${JIKAN_BASE_URL}/genres/anime`)
+      this._genreCache = {}
+      for (const g of response.data.data) {
+        this._genreCache[g.name.toLowerCase()] = g.mal_id
       }
+      return this._genreCache
+    } catch (error) {
+      console.error('Erro ao carregar gêneros do Jikan:', error.message)
+      return {}
+    }
+  }
+
+  async getGenreIdsFromNames(names) {
+    if (!names || names.length === 0) return []
+    const map = await this._loadGenres()
+    return names.map(n => map[n.toLowerCase()]).filter(Boolean)
+  }
+
+  async getGenresList() {
+    const map = await this._loadGenres()
+    return Object.keys(map).map(k => k.replace(/\b\w/g, c => c.toUpperCase())).sort()
+  }
+
+  _buildSortParam(sortBy) {
+    const map = {
+      date_asc: { order_by: 'start_date', sort: 'asc' },
+      date_desc: { order_by: 'start_date', sort: 'desc' },
+      rating_asc: { order_by: 'score', sort: 'asc' },
+      rating_desc: { order_by: 'score', sort: 'desc' },
+      popularity: { order_by: 'popularity', sort: 'asc' }, // popularity é rank: menor = mais popular
+    }
+    return map[sortBy] || { order_by: 'popularity', sort: 'asc' }
+  }
+
+  async _queryAnime({ q = '', page = 1, sortBy = 'popularity', genres = [] } = {}) {
+    const { order_by, sort } = this._buildSortParam(sortBy)
+    const genreIds = await this.getGenreIdsFromNames(genres)
+
+    const params = {
+      page,
+      limit: 20,
+      order_by,
+      sort,
+    }
+
+    if (q && q.trim()) params.q = q
+    if (genreIds.length > 0) params.genres = genreIds.join(',')
+    if (sortBy === 'rating_desc' || sortBy === 'rating_asc') params.min_score = 1
+
+    const response = await axios.get(`${JIKAN_BASE_URL}/anime`, { params })
+
+    return {
+      results: this.formatResults(response.data.data),
+      totalPages: response.data.pagination?.last_visible_page || 1,
+    }
+  }
+
+  async search(query, page = 1, opts = {}) {
+    try {
+      return await this._queryAnime({ q: query, page, ...opts })
     } catch (error) {
       console.error('Erro ao buscar no Jikan:', error.message)
       throw new Error(`Erro ao buscar no Jikan: ${error.message}`)
     }
   }
 
-  async getPopularAnimes(page = 1) {
+  async getPopularAnimes(page = 1, opts = {}) {
     try {
-      const response = await axios.get(`${JIKAN_BASE_URL}/top/anime`, {
-        params: {
-          page,
-          limit: 20,
-        },
-      })
-
-      return {
-        results: this.formatResults(response.data.data),
-        totalPages: response.data.pagination?.last_visible_page || 1,
-      }
+      return await this._queryAnime({ page, ...opts })
     } catch (error) {
       console.error('Erro ao buscar animes populares:', error.message)
       throw new Error(`Erro ao buscar animes populares: ${error.message}`)

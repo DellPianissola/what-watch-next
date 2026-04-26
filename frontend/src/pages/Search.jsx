@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { searchExternal, createMovie, getMovies, deleteMovie, getPopularMovies, getPopularSeries, getPopularAnimes } from '../services/api.js'
+import { searchExternal, createMovie, getMovies, deleteMovie, getPopularMovies, getPopularSeries, getPopularAnimes, getExternalGenres } from '../services/api.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import './Search.css'
@@ -15,6 +15,25 @@ const parseTypeParam = (value) => {
   return VALID_TYPES.includes(value) ? value : 'movie'
 }
 
+const VALID_SORTS = ['date_asc', 'date_desc', 'rating_asc', 'rating_desc']
+const parseSortParam = (value) => {
+  return VALID_SORTS.includes(value) ? value : null
+}
+
+const parseGenresParam = (value) => {
+  if (!value) return []
+  return value.split(',').map(s => s.trim()).filter(Boolean)
+}
+
+// Deriva (sortDate, sortRating) a partir do sortBy unificado
+const splitSort = (sortBy) => {
+  if (sortBy === 'date_asc') return { sortDate: 'asc', sortRating: null }
+  if (sortBy === 'date_desc') return { sortDate: 'desc', sortRating: null }
+  if (sortBy === 'rating_asc') return { sortDate: null, sortRating: 'asc' }
+  if (sortBy === 'rating_desc') return { sortDate: null, sortRating: 'desc' }
+  return { sortDate: null, sortRating: null }
+}
+
 const Search = () => {
   const { profile } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -24,30 +43,56 @@ const Search = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [addingMovie, setAddingMovie] = useState(null)
   const [userMovies, setUserMovies] = useState([])
-  const [sortDate, setSortDate] = useState(null) // null, 'asc', 'desc'
-  const [sortRating, setSortRating] = useState(null) // null, 'asc', 'desc'
-  const [selectedGenres, setSelectedGenres] = useState([])
+  const [availableGenres, setAvailableGenres] = useState([])
   const [showGenreDropdown, setShowGenreDropdown] = useState(false)
   const debounceTimer = useRef(null)
   const genreDropdownRef = useRef(null)
 
-  // URL é a fonte de verdade para `type` e `currentPage`
+  // URL é a fonte de verdade para `type`, `currentPage`, `sortBy` e `genres`
   const type = parseTypeParam(searchParams.get('type'))
   const currentPage = parsePageParam(searchParams.get('page'))
+  const sortBy = parseSortParam(searchParams.get('sortBy'))
+  const selectedGenres = parseGenresParam(searchParams.get('genres'))
+  const { sortDate, sortRating } = splitSort(sortBy)
 
-  const setType = (newType) => {
+  // Busca textual no TMDB (filme/série) NÃO suporta sort/gênero — desabilitamos a UI
+  const textSearchActive = query.trim().length > 0
+  const sortAndGenreDisabled = textSearchActive && type !== 'anime'
+
+  const updateParams = (mutate, { resetPage = false } = {}) => {
     const next = new URLSearchParams(searchParams)
-    if (newType === 'movie') next.delete('type')
-    else next.set('type', newType)
-    next.delete('page') // muda de tipo → volta pra página 1
+    mutate(next)
+    if (resetPage) next.delete('page')
     setSearchParams(next)
   }
 
+  const setType = (newType) => {
+    updateParams((next) => {
+      if (newType === 'movie') next.delete('type')
+      else next.set('type', newType)
+      next.delete('genres') // gêneros são por-tipo; reseta ao trocar
+    }, { resetPage: true })
+  }
+
   const setCurrentPage = (newPage) => {
-    const next = new URLSearchParams(searchParams)
-    if (newPage === 1) next.delete('page')
-    else next.set('page', String(newPage))
-    setSearchParams(next)
+    updateParams((next) => {
+      if (newPage === 1) next.delete('page')
+      else next.set('page', String(newPage))
+    })
+  }
+
+  const setSortBy = (value) => {
+    updateParams((next) => {
+      if (!value) next.delete('sortBy')
+      else next.set('sortBy', value)
+    }, { resetPage: true })
+  }
+
+  const setSelectedGenres = (arr) => {
+    updateParams((next) => {
+      if (!arr || arr.length === 0) next.delete('genres')
+      else next.set('genres', arr.join(','))
+    }, { resetPage: true })
   }
 
   // Fecha o dropdown ao clicar fora
@@ -82,12 +127,23 @@ const Search = () => {
     }
   }, [profile])
 
-  // Limpa gêneros selecionados ao mudar o tipo
+  // Carrega lista de gêneros disponíveis para o tipo atual
   useEffect(() => {
-    setSelectedGenres([])
+    let cancelled = false
+    const loadGenres = async () => {
+      try {
+        const response = await getExternalGenres(type)
+        if (!cancelled) setAvailableGenres(response.data.genres || [])
+      } catch (error) {
+        console.error('Erro ao carregar gêneros:', error)
+        if (!cancelled) setAvailableGenres([])
+      }
+    }
+    loadGenres()
+    return () => { cancelled = true }
   }, [type])
 
-  // Reseta página quando query muda (mudança de tipo já reseta dentro do setType)
+  // Reseta página quando query muda (mudança de tipo/sort/gênero já reseta nos setters)
   const prevQueryRef = useRef(query)
   useEffect(() => {
     if (prevQueryRef.current === query) return
@@ -96,6 +152,7 @@ const Search = () => {
   }, [query])
 
   // Busca automática com debounce ou carrega populares
+  const genresKey = selectedGenres.join(',')
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current)
@@ -105,9 +162,9 @@ const Search = () => {
       setLoading(true)
       try {
         if (!query.trim()) {
-          await loadPopular(currentPage)
+          await loadPopular(currentPage, sortBy, selectedGenres)
         } else {
-          await loadSearch(query, type, currentPage)
+          await loadSearch(query, type, currentPage, sortBy, selectedGenres)
         }
       } finally {
         setLoading(false)
@@ -127,18 +184,19 @@ const Search = () => {
         clearTimeout(debounceTimer.current)
       }
     }
-  }, [query, type, currentPage])
+  }, [query, type, currentPage, sortBy, genresKey])
 
-  const loadPopular = async (page) => {
+  const loadPopular = async (page, sort, genres) => {
     try {
+      const opts = { sortBy: sort || undefined, genres }
       let response
 
       if (type === 'movie') {
-        response = await getPopularMovies(page)
+        response = await getPopularMovies(page, opts)
       } else if (type === 'series') {
-        response = await getPopularSeries(page)
+        response = await getPopularSeries(page, opts)
       } else {
-        response = await getPopularAnimes(page)
+        response = await getPopularAnimes(page, opts)
       }
 
       setResults(response.data.results || [])
@@ -150,9 +208,13 @@ const Search = () => {
     }
   }
 
-  const loadSearch = async (q, searchType, page) => {
+  const loadSearch = async (q, searchType, page, sort, genres) => {
     try {
-      const response = await searchExternal(q, searchType, page)
+      // TMDB /search ignora sort/gênero; Jikan suporta
+      const opts = searchType === 'anime'
+        ? { sortBy: sort || undefined, genres }
+        : {}
+      const response = await searchExternal(q, searchType, page, opts)
       setResults(response.data.results || [])
       setTotalPages(response.data.totalPages || 1)
     } catch (error) {
@@ -248,49 +310,7 @@ const Search = () => {
     }
   }
 
-  // Extrai gêneros únicos dos resultados
-  const allGenres = [...new Set(results.flatMap(item => item.genres || []))].sort()
-
-  // Filtra e ordena os resultados
-  const filteredAndSortedResults = results
-    .filter(item => {
-      // Filtro por gêneros
-      if (selectedGenres.length > 0) {
-        const itemGenres = item.genres || []
-        return selectedGenres.some(genre => itemGenres.includes(genre))
-      }
-      return true
-    })
-    .sort((a, b) => {
-      let result = 0
-      
-      // Ordenação por data
-      if (sortDate) {
-        const dateA = a.year || 0
-        const dateB = b.year || 0
-        if (sortDate === 'asc') {
-          result = dateA - dateB
-        } else if (sortDate === 'desc') {
-          result = dateB - dateA
-        }
-        // Se o resultado da data for diferente de zero, retorna
-        if (result !== 0) return result
-      }
-      
-      // Ordenação por nota (se a data não diferenciar ou não estiver ativa)
-      if (sortRating) {
-        const ratingA = a.rating || 0
-        const ratingB = b.rating || 0
-        if (sortRating === 'asc') {
-          result = ratingA - ratingB
-        } else if (sortRating === 'desc') {
-          result = ratingB - ratingA
-        }
-      }
-      
-      return result
-    })
-
+  // Sort/filtro agora são feitos pela API (URL → backend). Front renderiza o que vier.
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
@@ -299,33 +319,26 @@ const Search = () => {
   }
 
   const toggleGenre = (genre) => {
-    setSelectedGenres(prev => 
-      prev.includes(genre) 
-        ? prev.filter(g => g !== genre)
-        : [...prev, genre]
-    )
+    const next = selectedGenres.includes(genre)
+      ? selectedGenres.filter(g => g !== genre)
+      : [...selectedGenres, genre]
+    setSelectedGenres(next)
+  }
+
+  const cycleSort = (current) => {
+    if (current === null) return 'desc'
+    if (current === 'desc') return 'asc'
+    return null
   }
 
   const toggleSortDate = () => {
-    setSortDate(prev => {
-      if (prev === null) {
-        setSortRating(null) // Desativa o outro filtro
-        return 'desc'
-      }
-      if (prev === 'desc') return 'asc'
-      return null
-    })
+    const next = cycleSort(sortDate)
+    setSortBy(next === null ? null : `date_${next}`)
   }
 
   const toggleSortRating = () => {
-    setSortRating(prev => {
-      if (prev === null) {
-        setSortDate(null) // Desativa o outro filtro
-        return 'desc'
-      }
-      if (prev === 'desc') return 'asc'
-      return null
-    })
+    const next = cycleSort(sortRating)
+    setSortBy(next === null ? null : `rating_${next}`)
   }
 
   const buildPageList = (current, total) => {
@@ -401,6 +414,8 @@ const Search = () => {
                 <button
                   type="button"
                   onClick={toggleSortDate}
+                  disabled={sortAndGenreDisabled}
+                  title={sortAndGenreDisabled ? 'Indisponível durante busca por texto' : ''}
                   className={`sort-btn ${sortDate ? 'active' : ''}`}
                 >
                   📅 Data {getSortIcon(sortDate)}
@@ -408,24 +423,28 @@ const Search = () => {
                 <button
                   type="button"
                   onClick={toggleSortRating}
+                  disabled={sortAndGenreDisabled}
+                  title={sortAndGenreDisabled ? 'Indisponível durante busca por texto' : ''}
                   className={`sort-btn ${sortRating ? 'active' : ''}`}
                 >
                   ⭐ Nota {getSortIcon(sortRating)}
                 </button>
               </div>
-              
+
               <div className="genre-dropdown-wrapper" ref={genreDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setShowGenreDropdown(!showGenreDropdown)}
+                  disabled={sortAndGenreDisabled}
+                  title={sortAndGenreDisabled ? 'Indisponível durante busca por texto' : ''}
                   className="genre-dropdown-btn"
                 >
                   🎭 Gêneros {selectedGenres.length > 0 && `(${selectedGenres.length})`}
                 </button>
                 {showGenreDropdown && (
                   <div className="genre-dropdown">
-                    {allGenres.length > 0 ? (
-                      allGenres.map(genre => (
+                    {availableGenres.length > 0 ? (
+                      availableGenres.map(genre => (
                         <label key={genre} className="genre-option">
                           <input
                             type="checkbox"
@@ -469,9 +488,9 @@ const Search = () => {
           </div>
         )}
 
-        {!loading && filteredAndSortedResults.length > 0 && (
+        {!loading && results.length > 0 && (
           <div className="results-grid">
-            {filteredAndSortedResults.map((item) => {
+            {results.map((item) => {
               const genresText = item.genres && item.genres.length > 0 
                 ? item.genres.join(', ') 
                 : 'Sem gênero'
@@ -579,7 +598,7 @@ const Search = () => {
           </div>
         )}
 
-        {!loading && filteredAndSortedResults.length === 0 && (
+        {!loading && results.length === 0 && (
           <p className="no-results">
             {query ? 'Nenhum resultado encontrado' : 'Nenhum conteúdo popular encontrado'}
           </p>

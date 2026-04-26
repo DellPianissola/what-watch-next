@@ -93,17 +93,30 @@ export const createProfile = (data) => api.post('/profiles', data)
 export const updateProfile = (id, data) => api.put('/profiles', data)
 
 // External APIs
-export const searchExternal = (query, type, page = 1) =>
-  api.get('/external/search', { params: { q: query, type, page } })
+const buildExtParams = ({ page, sortBy, genres } = {}) => {
+  const params = {}
+  if (page) params.page = page
+  if (sortBy) params.sortBy = sortBy
+  if (genres && genres.length > 0) params.genres = genres.join(',')
+  return params
+}
 
-export const getPopularMovies = (page = 1) =>
-  api.get('/external/movies', { params: { page } })
+export const searchExternal = (query, type, page = 1, opts = {}) =>
+  api.get('/external/search', {
+    params: { q: query, type, ...buildExtParams({ page, ...opts }) },
+  })
 
-export const getPopularSeries = (page = 1) =>
-  api.get('/external/series', { params: { page } })
+export const getPopularMovies = (page = 1, opts = {}) =>
+  api.get('/external/movies', { params: buildExtParams({ page, ...opts }) })
 
-export const getPopularAnimes = (page = 1) =>
-  api.get('/external/animes', { params: { page } })
+export const getPopularSeries = (page = 1, opts = {}) =>
+  api.get('/external/series', { params: buildExtParams({ page, ...opts }) })
+
+export const getPopularAnimes = (page = 1, opts = {}) =>
+  api.get('/external/animes', { params: buildExtParams({ page, ...opts }) })
+
+export const getExternalGenres = (type) =>
+  api.get('/external/genres', { params: { type } })
 
 export const getMovieDetails = (id) =>
   api.get(`/external/movies/${id}`)

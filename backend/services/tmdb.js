@@ -49,9 +49,89 @@ class TMDBService {
    */
   async mapGenreIds(genreIds, type = 'movie') {
     if (!genreIds || genreIds.length === 0) return []
-    
+
     const genres = await this.getGenres(type)
     return genreIds.map(id => genres[id]).filter(Boolean)
+  }
+
+  /**
+   * Converte nomes de gêneros para IDs (para uso no /discover)
+   */
+  async getGenreIdsFromNames(names, type = 'movie') {
+    if (!names || names.length === 0) return []
+    const genres = await this.getGenres(type)
+    const reverse = {}
+    for (const [id, name] of Object.entries(genres)) {
+      reverse[name.toLowerCase()] = id
+    }
+    return names.map(n => reverse[n.toLowerCase()]).filter(Boolean)
+  }
+
+  /**
+   * Lista de nomes de gêneros (para o dropdown do frontend)
+   */
+  async getGenresList(type = 'movie') {
+    const genres = await this.getGenres(type)
+    return Object.values(genres).sort()
+  }
+
+  /**
+   * Mapeia o sortBy do frontend para o sort_by do TMDB
+   */
+  _buildSortParam(sortBy, type = 'movie') {
+    const dateField = type === 'tv' ? 'first_air_date' : 'primary_release_date'
+    const map = {
+      date_asc: `${dateField}.asc`,
+      date_desc: `${dateField}.desc`,
+      rating_asc: 'vote_average.asc',
+      rating_desc: 'vote_average.desc',
+      popularity: 'popularity.desc',
+    }
+    return map[sortBy] || 'popularity.desc'
+  }
+
+  /**
+   * Discover: lista filmes/séries com sort e filtro por gênero
+   */
+  async discover(type = 'movie', { page = 1, sortBy = 'popularity', genres = [] } = {}) {
+    if (!this.apiKey) {
+      throw new Error('TMDB API Key não configurada')
+    }
+
+    try {
+      const endpoint = type === 'tv' ? '/discover/tv' : '/discover/movie'
+      const sort = this._buildSortParam(sortBy, type)
+      const genreIds = await this.getGenreIdsFromNames(genres, type)
+
+      const params = {
+        api_key: this.apiKey,
+        language: 'pt-BR',
+        page,
+        sort_by: sort,
+        include_adult: false,
+      }
+
+      if (genreIds.length > 0) {
+        params.with_genres = genreIds.join(',')
+      }
+
+      // Para sort por nota, exigir um mínimo de votos para evitar resultados de 1 usuário com nota 10
+      if (sortBy === 'rating_desc' || sortBy === 'rating_asc') {
+        params['vote_count.gte'] = 200
+      }
+
+      const response = await axios.get(`${TMDB_BASE_URL}${endpoint}`, { params })
+      const results = await this.formatResults(response.data.results, type)
+
+      return {
+        results,
+        totalPages: Math.min(response.data.total_pages || 1, 500),
+        totalResults: response.data.total_results || 0,
+      }
+    } catch (error) {
+      console.error('Erro no discover do TMDB:', error.message)
+      throw new Error(`Erro no discover do TMDB: ${error.message}`)
+    }
   }
 
   async search(query, type = 'multi', page = 1) {
