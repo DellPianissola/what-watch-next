@@ -4,6 +4,8 @@ import { searchExternal, createMovie, getMovies, deleteMovie, getPopularMovies, 
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
+import OnboardingHeader from '../components/OnboardingHeader.jsx'
+import OnboardingFooter from '../components/OnboardingFooter.jsx'
 import './Search.css'
 
 const parsePageParam = (value) => {
@@ -377,46 +379,14 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     return ''
   }
 
-  // Cálculos do modo onboarding
-  const onboardingCount = userMovies.length
-  const onboardingProgress = Math.min(onboardingCount, ONBOARDING_TARGET)
-  const onboardingComplete = onboardingCount >= ONBOARDING_TARGET
-  const onboardingRemaining = Math.max(ONBOARDING_TARGET - onboardingCount, 0)
-
   return (
     <div className={`search-page ${isOnboarding ? 'search-page-onboarding' : ''}`}>
       {isOnboarding && (
-        <div className="onboarding-header">
-          <div className="onboarding-header-content">
-            <div className="onboarding-header-text">
-              <h2>Bem-vindo!</h2>
-              <p>
-                Adicione pelo menos {ONBOARDING_TARGET} filmes, séries ou animes pra
-                ativar o sorteio e começar a usar o app.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="onboarding-skip-link"
-              onClick={() => onSkip?.()}
-            >
-              Pular por agora
-            </button>
-          </div>
-          <div className="onboarding-progress">
-            <div className="onboarding-progress-text">
-              {onboardingComplete
-                ? `Pronto! ${onboardingCount} ${onboardingCount === 1 ? 'item adicionado' : 'itens adicionados'}`
-                : `${onboardingProgress} de ${ONBOARDING_TARGET} ${onboardingProgress === 1 ? 'adicionado' : 'adicionados'}`}
-            </div>
-            <div className="onboarding-progress-bar">
-              <div
-                className="onboarding-progress-fill"
-                style={{ width: `${(onboardingProgress / ONBOARDING_TARGET) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        <OnboardingHeader
+          count={userMovies.length}
+          target={ONBOARDING_TARGET}
+          onSkip={() => onSkip?.()}
+        />
       )}
 
       <div className="search-container">
@@ -653,18 +623,11 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
       </div>
 
       {isOnboarding && (
-        <div className="onboarding-footer">
-          <button
-            type="button"
-            className={`onboarding-cta ${onboardingComplete ? 'onboarding-cta-ready' : ''}`}
-            onClick={() => onComplete?.()}
-            disabled={!onboardingComplete}
-          >
-            {onboardingComplete
-              ? 'Continuar →'
-              : `Adicione mais ${onboardingRemaining} ${onboardingRemaining === 1 ? 'item' : 'itens'}`}
-          </button>
-        </div>
+        <OnboardingFooter
+          count={userMovies.length}
+          target={ONBOARDING_TARGET}
+          onComplete={() => onComplete?.()}
+        />
       )}
     </div>
   )

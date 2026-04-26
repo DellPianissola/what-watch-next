@@ -1,14 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { asyncHandler } from '../../lib/asyncHandler.js'
+import { buildReq, buildRes, buildNext } from '../helpers/express.js'
 
 describe('asyncHandler', () => {
-  // Setup: helpers para construir req/res/next fake
-  const buildReq = () => ({})
-  const buildRes = () => ({
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-  })
-  const buildNext = () => vi.fn()
 
   it('deve chamar o handler passando req, res e next', async () => {
     const handler = vi.fn().mockResolvedValue(undefined)

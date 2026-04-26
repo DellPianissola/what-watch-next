@@ -6,15 +6,11 @@ import {
   ConflictError,
   UnauthorizedError,
 } from '../../lib/httpErrors.js'
+import { buildReq, buildRes, buildNext } from '../helpers/express.js'
 
 describe('errorHandler middleware', () => {
-  // Helpers
-  const buildRes = () => ({
-    status: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-  })
-  const req = {}
-  const next = vi.fn()
+  const req = buildReq()
+  const next = buildNext()
 
   // Suprime console.error pra não poluir output dos testes
   let errorSpy

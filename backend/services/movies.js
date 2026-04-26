@@ -1,6 +1,7 @@
 import { prisma } from '../config/database.js'
 import { drawMovie as drawFromLottery } from './lottery.js'
 import { requireUserProfile } from '../lib/profileHelpers.js'
+import { toIntOrNull } from '../lib/parsers.js'
 import {
   ValidationError,
   NotFoundError,
@@ -45,12 +46,6 @@ const normalizeRating = (rating) => {
     throw new ValidationError('Rating deve ser um número entre 0 e 10')
   }
   return parsed
-}
-
-const toIntOrNull = (value) => {
-  if (value === undefined || value === null || value === '') return null
-  const parsed = parseInt(value, 10)
-  return Number.isFinite(parsed) ? parsed : null
 }
 
 // Verifica duplicata por externalId (preferencial) ou por title+type (fallback).
