@@ -5,21 +5,21 @@
 }
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --secondary: #ec4899;
-  --secondary-dark: #db2777;
-  --background: #0f172a;
-  --surface: #1e293b;
-  --surface-light: #334155;
+  --primary: #a855f7;
+  --primary-dark: #7c3aed;
+  --secondary: #f59e0b;
+  --secondary-dark: #d97706;
+  --background: #0d0f1a;
+  --surface: #151829;
+  --surface-light: #252a40;
   --text: #f1f5f9;
-  --text-muted: #94a3b8;
+  --text-muted: #8892b0;
   --accent: #f59e0b;
   --success: #10b981;
   --danger: #ef4444;
-  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-1: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  --gradient-2: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-3: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
 }
 
 body {

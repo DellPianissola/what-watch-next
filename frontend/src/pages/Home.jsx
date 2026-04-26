@@ -52,12 +52,11 @@ const Home = () => {
 
   return (
     <div className="home">
-      {/* Background Animation */}
-      <div className="background-animation">
-        <div className="floating-shape shape-1"></div>
-        <div className="floating-shape shape-2"></div>
-        <div className="floating-shape shape-3"></div>
-        <div className="floating-shape shape-4"></div>
+      {/* Cinema Background */}
+      <div className="cinema-bg">
+        {[...Array(18)].map((_, i) => (
+          <div key={i} className={`glow-dot glow-dot-${i + 1}`} />
+        ))}
       </div>
 
       {/* Main Content */}
