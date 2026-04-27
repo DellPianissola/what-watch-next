@@ -51,6 +51,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
   const [userMovies, setUserMovies] = useState([])
   const [availableGenres, setAvailableGenres] = useState([])
   const [showGenreDropdown, setShowGenreDropdown] = useState(false)
+  const [expandedItem, setExpandedItem] = useState(null)
   const debounceTimer = useRef(null)
   const genreDropdownRef = useRef(null)
 
@@ -100,6 +101,18 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
       else next.set('genres', arr.join(','))
     }, { resetPage: true })
   }
+
+  // Fecha modal ao pressionar ESC; trava scroll do body enquanto aberto
+  useEffect(() => {
+    if (!expandedItem) return
+    const onKey = (e) => { if (e.key === 'Escape') setExpandedItem(null) }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [expandedItem])
 
   // Fecha o dropdown ao clicar fora
   useEffect(() => {
@@ -516,7 +529,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
                 : 'Sem gênero'
 
               return (
-                <div key={item.id} className="result-card">
+                <div key={item.id} className="result-card" onClick={() => setExpandedItem(item)}>
                   <div className="result-poster-container">
                     {item.poster ? (
                       <img src={item.poster} alt={item.title} className="result-poster" />
@@ -547,7 +560,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
                         </span>
                       </div>
                       <button
-                        onClick={() => handleAddMovie(item)}
+                        onClick={(e) => { e.stopPropagation(); handleAddMovie(item) }}
                         disabled={!profile || addingMovie === item.id}
                         className={`btn-add ${isMovieInList(item) ? 'btn-remove' : ''}`}
                       >
@@ -622,6 +635,62 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
         )}
       </div>
 
+      {expandedItem && (
+        <div className="card-modal-backdrop" onClick={() => setExpandedItem(null)}>
+          <div className="card-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="card-modal-close" onClick={() => setExpandedItem(null)}>✕</button>
+            <div className="card-modal-body">
+              <div className="card-modal-poster-col">
+                {expandedItem.poster ? (
+                  <img src={expandedItem.poster} alt={expandedItem.title} />
+                ) : (
+                  <PosterPlaceholder
+                    title={expandedItem.title}
+                    type={expandedItem.type}
+                    className="result-poster"
+                  />
+                )}
+              </div>
+              <div className="card-modal-info">
+                <div className="card-modal-title-row">
+                  <h2>{expandedItem.title}</h2>
+                  <span className="result-type-badge" style={{ position: 'static' }}>
+                    {expandedItem.type === 'MOVIE' ? 'Filme' :
+                     expandedItem.type === 'SERIES' ? 'Série' :
+                     expandedItem.type === 'ANIME' ? 'Anime' : expandedItem.type}
+                  </span>
+                </div>
+                <div className="card-modal-meta">
+                  {expandedItem.year && <span>📅 {expandedItem.year}</span>}
+                  {expandedItem.rating && <span>⭐ {expandedItem.rating}</span>}
+                  {expandedItem.duration && <span>⏱ {expandedItem.duration} min</span>}
+                </div>
+                {expandedItem.genres && expandedItem.genres.length > 0 && (
+                  <div className="card-modal-genres">
+                    🎭 {expandedItem.genres.join(', ')}
+                  </div>
+                )}
+                <p className="card-modal-description">
+                  {expandedItem.description || 'Sem sinopse disponível.'}
+                </p>
+                <div className="card-modal-actions">
+                  <button
+                    onClick={() => handleAddMovie(expandedItem)}
+                    disabled={!profile || addingMovie === expandedItem.id}
+                    className={`btn-add ${isMovieInList(expandedItem) ? 'btn-remove' : ''}`}
+                  >
+                    {addingMovie === expandedItem.id
+                      ? 'Processando...'
+                      : isMovieInList(expandedItem)
+                        ? '🗑️ Remover da lista'
+                        : '➕ Adicionar à lista'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
