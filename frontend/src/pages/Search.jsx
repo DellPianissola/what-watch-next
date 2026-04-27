@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import OnboardingHeader from '../components/OnboardingHeader.jsx'
+import { detailsCache, trailerUrl } from '../utils/detailsCache.js'
+import '../components/CardModal.css'
 import './Search.css'
 
 const parsePageParam = (value) => {
@@ -37,15 +39,6 @@ const splitSort = (sortBy) => {
 }
 
 const ONBOARDING_TARGET = 3
-
-// Cache de sessão: evita re-fetch ao reabrir o mesmo item
-const detailsCache = new Map()
-
-const trailerUrl = (trailer) => {
-  if (!trailer) return null
-  if (trailer.startsWith('http')) return trailer
-  return `https://www.youtube.com/watch?v=${trailer}`
-}
 
 const Search = ({ mode = 'page', onComplete, onSkip }) => {
   const { profile } = useAuth()
