@@ -15,7 +15,7 @@ model User {
   email     String
   username  String   @unique
   password  String
-  birthDate DateTime? // Data de nascimento (opcional para usuários existentes)
+  birthDate DateTime? 
   isAdmin   Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

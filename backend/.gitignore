@@ -3,8 +3,6 @@ node_modules/
 *.log
 .DS_Store
 
-# Prisma
-prisma/migrations/
 
 # Coverage
 coverage/
