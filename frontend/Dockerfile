@@ -7,6 +7,11 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# VITE_API_URL é injetada em build time (não funciona como env de runtime no nginx)
+# Passar via --build-arg no docker build ou via build.args no compose
+ARG VITE_API_URL
+
 RUN npm run build
 
 # Stage 2 — serve com nginx
