@@ -163,18 +163,64 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.movie-priority-badge {
+.movie-priority-badge-wrapper {
   position: absolute;
   top: 1rem;
   left: 1rem;
+  z-index: 10;
+}
+
+.movie-priority-badge {
+  display: inline-block;
   padding: 0.35rem 0.6rem;
   backdrop-filter: blur(10px);
   color: white;
   border-radius: 6px;
   font-size: 0.7rem;
   font-weight: 600;
-  z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+
+.movie-priority-badge:hover {
+  opacity: 0.85;
+}
+
+.priority-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--surface-light);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 110px;
+  z-index: 100;
+}
+
+.priority-dropdown-option {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--priority-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.priority-dropdown-option:hover {
+  background: var(--surface-light);
+}
+
+.priority-dropdown-option.active {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .movie-info {

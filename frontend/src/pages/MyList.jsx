@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMovies, deleteMovie, updateMovie } from '../services/api.js'
 import { useNotify } from '../contexts/NotificationContext.jsx'
@@ -14,11 +14,25 @@ const MyList = () => {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState({ type: '', watched: '' })
   const [expandedItemId, setExpandedItemId] = useState(null)
+  const [priorityDropdownId, setPriorityDropdownId] = useState(null)
+  const priorityDropdownRef = useRef(null)
 
   // expandedItem é sempre derivado do array — reage automaticamente a toggles e deletes
   const expandedItem = movies.find(m => m.id === expandedItemId) ?? null
 
   const { richDetails, richDetailsLoading } = useRichDetails(expandedItem)
+
+  // Fecha o dropdown de prioridade ao clicar fora dele
+  useEffect(() => {
+    if (!priorityDropdownId) return
+    const handler = (e) => {
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(e.target)) {
+        setPriorityDropdownId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [priorityDropdownId])
 
   useEffect(() => {
     loadMovies()
@@ -52,6 +66,17 @@ const MyList = () => {
     }
   }
 
+  const handleChangePriority = async (movie, priority) => {
+    if (movie.priority === priority) return
+    try {
+      await updateMovie(movie.id, { priority })
+      setMovies(prev => prev.map(m => m.id === movie.id ? { ...m, priority } : m))
+    } catch (error) {
+      console.error('Erro ao atualizar prioridade:', error)
+      toast.error('Erro ao atualizar prioridade')
+    }
+  }
+
   const handleToggleWatched = async (movie) => {
     const newWatched = !movie.watched
     try {
@@ -81,7 +106,7 @@ const MyList = () => {
 
   const getPriorityLabel = (priority) => {
     switch (priority) {
-      case 'URGENT': return 'Urgente'
+      case 'URGENT': return 'Máxima'
       case 'HIGH':   return 'Alta'
       case 'MEDIUM': return 'Média'
       case 'LOW':    return 'Baixa'
@@ -115,12 +140,45 @@ const MyList = () => {
              movie.type === 'SERIES' ? 'Série' :
              movie.type === 'ANIME' ? 'Anime' : movie.type}
           </span>
-          <span
-            className="movie-priority-badge"
-            style={{ backgroundColor: getPriorityColor(movie.priority) }}
+          <div
+            className="movie-priority-badge-wrapper"
+            ref={priorityDropdownId === movie.id ? priorityDropdownRef : null}
           >
-            {getPriorityLabel(movie.priority)}
-          </span>
+            <span
+              className="movie-priority-badge"
+              style={{ backgroundColor: getPriorityColor(movie.priority) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setPriorityDropdownId(priorityDropdownId === movie.id ? null : movie.id)
+              }}
+              title="Alterar prioridade"
+            >
+              {getPriorityLabel(movie.priority)} ▾
+            </span>
+            {priorityDropdownId === movie.id && (
+              <div className="priority-dropdown">
+                {[
+                  { value: 'LOW',    label: 'Baixa'   },
+                  { value: 'MEDIUM', label: 'Média'   },
+                  { value: 'HIGH',   label: 'Alta'    },
+                  { value: 'URGENT', label: 'Máxima'  },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    className={`priority-dropdown-option ${movie.priority === value ? 'active' : ''}`}
+                    style={{ '--priority-color': getPriorityColor(value) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleChangePriority(movie, value)
+                      setPriorityDropdownId(null)
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="movie-info">
           <div className="movie-header">
@@ -246,20 +304,41 @@ const MyList = () => {
           richDetailsLoading={richDetailsLoading}
           onClose={() => setExpandedItemId(null)}
           actions={
-            <div className="movie-actions" style={{ width: '100%' }}>
-              <button
-                onClick={() => handleToggleWatched(expandedItem)}
-                className={`btn-toggle ${expandedItem.watched ? 'watched' : ''}`}
-              >
-                {expandedItem.watched ? '✅ Assistido' : '⭕ Não assistido'}
-              </button>
-              <button
-                onClick={() => handleDelete(expandedItem.id)}
-                className="btn-delete-icon"
-                title="Remover da lista"
-              >
-                🗑️
-              </button>
+            <div className="modal-actions-stack">
+              <div className="priority-picker">
+                <span className="priority-picker-label">Prioridade</span>
+                <div className="priority-pills">
+                  {[
+                    { value: 'LOW',    label: 'Baixa'   },
+                    { value: 'MEDIUM', label: 'Média'   },
+                    { value: 'HIGH',   label: 'Alta'    },
+                    { value: 'URGENT', label: 'Máxima' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      className={`priority-pill priority-pill--${value.toLowerCase()} ${expandedItem.priority === value ? 'priority-pill--active' : ''}`}
+                      onClick={() => handleChangePriority(expandedItem, value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="movie-actions">
+                <button
+                  onClick={() => handleToggleWatched(expandedItem)}
+                  className={`btn-toggle ${expandedItem.watched ? 'watched' : ''}`}
+                >
+                  {expandedItem.watched ? '✅ Assistido' : '⭕ Não assistido'}
+                </button>
+                <button
+                  onClick={() => handleDelete(expandedItem.id)}
+                  className="btn-delete-icon"
+                  title="Remover da lista"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           }
         />
