@@ -19,6 +19,8 @@ Plataforma multi-usuário para gerenciar listas de filmes, séries e animes. Cad
 | Frontend | React 18, Vite, React Router v6, Axios |
 | Backend | Node.js, Express, Prisma, PostgreSQL, JWT |
 | Busca externa | TMDB API v3, Jikan API v4 |
+| Email | Resend |
+| Storage | MinIO (S3-compatible, self-hosted) |
 | Infra | Docker, Docker Compose |
 | Testes | Vitest (unit + integração) |
 
@@ -38,8 +40,10 @@ whatchu/
 │   ├── middleware/
 │   ├── lib/
 │   ├── config/
+│   ├── tests/
 │   └── prisma/
 ├── docker-compose.yml
+├── docker-compose.prod.yml
 └── README.md
 ```
 
@@ -48,40 +52,101 @@ whatchu/
 ### Pré-requisitos
 - Docker e Docker Compose
 
-### Subir tudo
+### Subir tudo (primeira vez)
 
 ```bash
 git clone https://github.com/DellPianissola/whatchu.git
 cd whatchu
-docker compose up
+cp backend/.env.example backend/.env   # preencher as variáveis
+docker compose up --build
 ```
 
 | Serviço | URL |
 |---|---|
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:5000/api |
-| Swagger | http://localhost:5000/docs |
 | PostgreSQL | localhost:5432 |
+| MinIO Console | http://localhost:9001 |
+| MinIO API | http://localhost:9000 |
 
-### Comandos úteis
+---
+
+## Docker — comandos úteis
+
+### Ciclo de vida
 
 ```bash
-npm run up          # docker compose up
-npm run up:build    # docker compose up --build
-npm run up:d        # docker compose up -d (background)
-npm run down        # parar serviços
-npm run down:v      # parar e limpar banco
-npm run logs        # ver logs
+# Subir tudo em background
+docker compose up -d
+
+# Subir com rebuild das imagens (após mudar código ou dependências)
+docker compose up --build
+
+# Subir um serviço específico com rebuild
+docker compose up --build backend
+docker compose up --build frontend
+
+# Parar tudo (mantém volumes)
+docker compose down
+
+# Parar e apagar volumes (reseta banco e MinIO)
+docker compose down -v
 ```
 
-### Desenvolvimento local
+### Logs
 
 ```bash
+# Todos os serviços
+docker compose logs -f
+
+# Serviço específico
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f postgres
+docker compose logs -f minio
+```
+
+### Banco de dados (Prisma)
+
+```bash
+# Rodar migrations na dev (de fora do Docker)
+cd backend
+DATABASE_URL="postgresql://whatchu:whatchu@localhost:5432/whatchu" \
+  npx prisma migrate dev --name nome_da_migration
+
+# Abrir Prisma Studio (de fora do Docker)
+cd backend
+DATABASE_URL="postgresql://whatchu:whatchu@localhost:5432/whatchu" \
+  npx prisma studio
+
+# Rodar migrations dentro do container
+docker compose exec backend npx prisma migrate deploy
+```
+
+### Execução de comandos dentro de containers
+
+```bash
+# Abrir shell no backend
+docker compose exec backend sh
+
+# Abrir shell no frontend
+docker compose exec frontend sh
+
+# Checar status dos containers
+docker compose ps
+```
+
+### Desenvolvimento local (sem Docker)
+
+```bash
+# Precisa do Postgres rodando (pode ser só o container do banco)
+docker compose up -d postgres
+
 # Backend
-cd backend && npm install && npm run dev
+cd backend && npm install && npm run dev   # porta 5000
 
 # Frontend
-cd frontend && npm install && npm run dev
+cd frontend && npm install && npm run dev  # porta 5173
 ```
 
 ## Testes (backend)
@@ -114,17 +179,32 @@ npm run test:all
 
 ## Variáveis de ambiente
 
-Crie `backend/.env` com base nas chaves abaixo:
+Crie `backend/.env` a partir do exemplo:
 
-```env
-DATABASE_URL=postgresql://whatchu:whatchu@postgres:5432/whatchu
-PORT=5000
-NODE_ENV=development
-TMDB_API_KEY=sua_chave_aqui
-JWT_SECRET=seu_secret_aqui
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-ADMIN_EMAIL=admin@localhost
+```bash
+cp backend/.env.example backend/.env
+```
+
+Chaves obrigatórias para a aplicação funcionar:
+
+| Variável | Descrição |
+|---|---|
+| `DATABASE_URL` | String de conexão do PostgreSQL |
+| `JWT_SECRET` | Secret do access token (mín. 32 chars) |
+| `REFRESH_TOKEN_SECRET` | Secret do refresh token (mín. 32 chars, diferente do anterior) |
+| `TMDB_API_KEY` | Chave da API do TMDB |
+| `RESEND_API_KEY` | Chave da API do Resend (emails) |
+| `APP_URL` | URL base do frontend (ex: `http://localhost:3000`) |
+| `MINIO_ENDPOINT` | Endpoint do MinIO (ex: `http://minio:9000` dentro do Docker) |
+| `MINIO_ACCESS_KEY` | Usuário do MinIO |
+| `MINIO_SECRET_KEY` | Senha do MinIO |
+| `MINIO_BUCKET` | Nome do bucket (ex: `whatchu`) |
+| `MINIO_PUBLIC_URL` | URL acessível pelo browser para servir as imagens |
+
+Gerar secrets seguros:
+
+```bash
+openssl rand -hex 32   # rodar duas vezes, uma pra cada secret
 ```
 
 ---
