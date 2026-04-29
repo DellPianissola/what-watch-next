@@ -1,24 +1,16 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { Client } from 'minio'
 
-const client = new S3Client({
-  endpoint: process.env.MINIO_ENDPOINT,
-  region: 'us-east-1',
-  credentials: {
-    accessKeyId:     process.env.MINIO_ACCESS_KEY,
-    secretAccessKey: process.env.MINIO_SECRET_KEY,
-  },
-  forcePathStyle: true, // obrigatório para MinIO
+const client = new Client({
+  endPoint:  process.env.MINIO_ENDPOINT_HOST ?? 'minio',
+  port:      parseInt(process.env.MINIO_PORT ?? '9000'),
+  useSSL:    process.env.MINIO_USE_SSL === 'true',
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY,
 })
 
 const BUCKET = process.env.MINIO_BUCKET ?? 'whatchu'
 
 export const uploadFile = async (key, buffer, contentType) => {
-  await client.send(new PutObjectCommand({
-    Bucket: BUCKET,
-    Key:    key,
-    Body:   buffer,
-    ContentType: contentType,
-    ACL: 'public-read',
-  }))
+  await client.putObject(BUCKET, key, buffer, buffer.length, { 'Content-Type': contentType })
   return `${process.env.MINIO_PUBLIC_URL}/${BUCKET}/${key}`
 }

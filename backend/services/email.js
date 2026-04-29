@@ -1,13 +1,23 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM = process.env.EMAIL_FROM ?? 'Whatchu <noreply@whatchu.app>'
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000'
 
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null
+
+const send = async (payload) => {
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY não configurada — email não enviado:', payload.subject)
+    return
+  }
+  await resend.emails.send(payload)
+}
+
 export const sendVerificationEmail = async (to, token) => {
   const link = `${APP_URL}/verify-email?token=${token}`
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: 'Confirme seu email — Whatchu',
@@ -23,7 +33,7 @@ export const sendVerificationEmail = async (to, token) => {
 
 export const sendPasswordResetEmail = async (to, token) => {
   const link = `${APP_URL}/reset-password?token=${token}`
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: 'Redefinição de senha — Whatchu',
@@ -39,7 +49,7 @@ export const sendPasswordResetEmail = async (to, token) => {
 
 export const sendEmailChangeVerification = async (to, token) => {
   const link = `${APP_URL}/verify-email?token=${token}&type=email-change`
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: 'Confirme seu novo email — Whatchu',
