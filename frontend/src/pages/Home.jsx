@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { getMovies, drawMovie } from '../services/api.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
@@ -17,6 +18,7 @@ const Home = () => {
   const { profile } = useAuth()
   const { toast } = useNotify()
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
   const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -45,6 +47,8 @@ const Home = () => {
       setAvailableGenres(genres)
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
+    } finally {
+      setIsLoadingStats(false)
     }
   }
 
@@ -92,7 +96,18 @@ const Home = () => {
     toast.info('Em breve — você vai poder sortear com os amigos!')
   }
 
+  const formatDuration = (minutes) => {
+    if (!minutes) return null
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    if (h === 0) return `${m}min`
+    if (m === 0) return `${h}h`
+    return `${h}h${m}min`
+  }
+
   const greeting = profile?.name ? `Olá, ${profile.name.split(' ')[0]}!` : 'Bem-vindo!'
+  const totalItems = stats.movies + stats.series + stats.animes
+  const listIsEmpty = !isLoadingStats && totalItems === 0
 
   return (
     <div className="home">
@@ -121,17 +136,17 @@ const Home = () => {
 
             <div className="stats-preview">
               <div className="stat-item">
-                <div className="stat-value">{stats.movies}</div>
+                <div className="stat-value">{isLoadingStats ? '—' : stats.movies}</div>
                 <div className="stat-label">Filmes</div>
               </div>
               <div className="stat-divider" />
               <div className="stat-item">
-                <div className="stat-value">{stats.series}</div>
+                <div className="stat-value">{isLoadingStats ? '—' : stats.series}</div>
                 <div className="stat-label">Séries</div>
               </div>
               <div className="stat-divider" />
               <div className="stat-item">
-                <div className="stat-value">{stats.animes}</div>
+                <div className="stat-value">{isLoadingStats ? '—' : stats.animes}</div>
                 <div className="stat-label">Animes</div>
               </div>
             </div>
@@ -184,24 +199,38 @@ const Home = () => {
               </label>
             </div>
 
-            <div className="action-buttons-main">
-              <button
-                className="btn btn-primary btn-draw"
-                onClick={handleDraw}
-                disabled={isDrawing}
-              >
-                <span className="btn-icon">🎲</span>
-                <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
-              </button>
-              <button className="btn btn-ghost btn-lucky" onClick={handleLucky}>
-                <span className="btn-icon">✨</span>
-                <span className="btn-text">Estou com sorte</span>
-              </button>
-            </div>
+            {listIsEmpty ? (
+              <div className="empty-list-state">
+                <p className="empty-list-text">
+                  Sua lista está vazia. Pesquise filmes, séries ou animes para começar.
+                </p>
+                <Link to="/search" className="btn btn-primary btn-draw">
+                  <span className="btn-icon">🔍</span>
+                  <span className="btn-text">Pesquisar conteúdo</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="action-buttons-main">
+                <button
+                  className="btn btn-primary btn-draw"
+                  onClick={handleDraw}
+                  disabled={isDrawing}
+                >
+                  <span className="btn-icon">🎲</span>
+                  <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
+                </button>
+                <button className="btn btn-ghost btn-lucky" onClick={handleLucky}>
+                  <span className="btn-icon">✨</span>
+                  <span className="btn-text">Estou com sorte</span>
+                  <span className="btn-soon">em breve</span>
+                </button>
+              </div>
+            )}
 
             <div className="group-row">
               <button className="btn-group" onClick={handleGroup}>
                 👥 Formar grupo
+                <span className="btn-soon btn-soon--inline">em breve</span>
               </button>
             </div>
           </div>
@@ -210,27 +239,35 @@ const Home = () => {
           <div className="card-right">
             {selectedMovie ? (
               <div className="draw-result-panel">
-                <div className="draw-result-top">
-                  <span className="draw-result-label">🎉 Sorteado!</span>
-                  <button className="btn-close-draw" onClick={() => setSelectedMovie(null)}>✕</button>
-                </div>
                 {selectedMovie.poster ? (
-                  <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-poster" />
+                  <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-result-bg" />
                 ) : (
                   <PosterPlaceholder
                     title={selectedMovie.title}
                     type={selectedMovie.type}
-                    className="draw-poster"
+                    className="draw-result-bg"
                   />
                 )}
-                <div className="draw-info">
-                  <h4>{selectedMovie.title}</h4>
-                  <p className="draw-type">
-                    {selectedMovie.type === 'MOVIE' ? 'Filme' :
-                     selectedMovie.type === 'SERIES' ? 'Série' : 'Anime'}
-                  </p>
+                <div className="draw-result-top">
+                  <span className="draw-result-label">🎉 Sorteado!</span>
+                  <button className="btn-close-draw" onClick={() => setSelectedMovie(null)}>✕</button>
+                </div>
+                <div className="draw-result-content">
+                  <div className="draw-result-meta">
+                    <span className="draw-type">
+                      {selectedMovie.type === 'MOVIE' ? 'Filme' :
+                       selectedMovie.type === 'SERIES' ? 'Série' : 'Anime'}
+                    </span>
+                    {selectedMovie.year && <span className="draw-meta-item">📅 {selectedMovie.year}</span>}
+                    {selectedMovie.rating && <span className="draw-meta-item">⭐ {selectedMovie.rating}</span>}
+                    {selectedMovie.duration && <span className="draw-meta-item">⏱ {formatDuration(selectedMovie.duration)}</span>}
+                  </div>
+                  <h4 className="draw-result-title">{selectedMovie.title}</h4>
+                  {selectedMovie.genres?.length > 0 && (
+                    <p className="draw-result-genres">{selectedMovie.genres.join(', ')}</p>
+                  )}
                   {selectedMovie.description && (
-                    <p className="draw-description">{selectedMovie.description}</p>
+                    <p className="draw-result-description">{selectedMovie.description}</p>
                   )}
                 </div>
               </div>
@@ -246,7 +283,7 @@ const Home = () => {
                 <div className="geo-dot geo-dot--1" />
                 <div className="geo-dot geo-dot--2" />
                 <div className="placeholder-hint">
-                  {isDrawing ? 'Sorteando...' : 'Sorteie algo'}
+                  {isDrawing ? 'Sorteando...' : 'O sorteado aparece aqui'}
                 </div>
               </div>
             )}
