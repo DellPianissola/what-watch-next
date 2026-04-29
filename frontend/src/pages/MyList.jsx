@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMovies, deleteMovie, updateMovie, getMovieDetails, getSeriesDetails, getAnimeDetails } from '../services/api.js'
+import { getMovies, deleteMovie, updateMovie } from '../services/api.js'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
-import { detailsCache, trailerUrl } from '../utils/detailsCache.js'
-import '../components/CardModal.css'
+import CardModal from '../components/CardModal.jsx'
+import { useRichDetails } from '../hooks/useRichDetails.js'
 import './MyList.css'
 
 const MyList = () => {
@@ -14,11 +14,11 @@ const MyList = () => {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState({ type: '', watched: '' })
   const [expandedItemId, setExpandedItemId] = useState(null)
-  const [richDetails, setRichDetails] = useState(null)
-  const [richDetailsLoading, setRichDetailsLoading] = useState(false)
 
   // expandedItem é sempre derivado do array — reage automaticamente a toggles e deletes
   const expandedItem = movies.find(m => m.id === expandedItemId) ?? null
+
+  const { richDetails, richDetailsLoading } = useRichDetails(expandedItem)
 
   useEffect(() => {
     loadMovies()
@@ -68,58 +68,6 @@ const MyList = () => {
       toast.error('Erro ao atualizar item')
     }
   }
-
-  // Busca detalhes ricos quando o modal abre
-  useEffect(() => {
-    if (!expandedItem?.externalId) {
-      setRichDetails(null)
-      return
-    }
-
-    const cacheKey = `${expandedItem.type}:${expandedItem.externalId}`
-    if (detailsCache.has(cacheKey)) {
-      setRichDetails(detailsCache.get(cacheKey))
-      setRichDetailsLoading(false)
-      return
-    }
-
-    let cancelled = false
-    setRichDetails(null)
-    setRichDetailsLoading(true)
-
-    const fetchDetails = async () => {
-      try {
-        let response
-        if (expandedItem.type === 'MOVIE') response = await getMovieDetails(expandedItem.externalId)
-        else if (expandedItem.type === 'SERIES') response = await getSeriesDetails(expandedItem.externalId)
-        else response = await getAnimeDetails(expandedItem.externalId)
-
-        if (!cancelled) {
-          detailsCache.set(cacheKey, response.data)
-          setRichDetails(response.data)
-        }
-      } catch (error) {
-        if (!cancelled) console.error('Erro ao carregar detalhes:', error)
-      } finally {
-        if (!cancelled) setRichDetailsLoading(false)
-      }
-    }
-
-    fetchDetails()
-    return () => { cancelled = true }
-  }, [expandedItem?.externalId, expandedItem?.type])
-
-  // ESC + trava scroll do body
-  useEffect(() => {
-    if (!expandedItemId) return
-    const onKey = (e) => { if (e.key === 'Escape') setExpandedItemId(null) }
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [expandedItemId])
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -244,7 +192,6 @@ const MyList = () => {
         ) : movies.length === 0 ? (
           <div className="empty-state">
             {filter.type || filter.watched ? (
-              // Filtro ativo mas sem resultados — sem CTA de adicionar
               <p>
                 {filter.watched === 'true'
                   ? 'Você ainda não marcou nenhum item como assistido.'
@@ -253,7 +200,6 @@ const MyList = () => {
                   : 'Nenhum item corresponde ao filtro selecionado.'}
               </p>
             ) : (
-              // Lista completamente vazia — mostra CTA de onboarding
               <>
                 <p>Nenhum item adicionado ainda</p>
                 <p className="empty-hint">Clique em "Adicionar" para buscar filmes, séries e animes!</p>
@@ -294,120 +240,29 @@ const MyList = () => {
       </div>
 
       {expandedItem && (
-        <div className="card-modal-backdrop" onClick={() => setExpandedItemId(null)}>
-          <div className="card-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="card-modal-close" onClick={() => setExpandedItemId(null)}>✕</button>
-            <div className="card-modal-body">
-              <div className="card-modal-poster-col">
-                {expandedItem.poster ? (
-                  <img src={expandedItem.poster} alt={expandedItem.title} />
-                ) : (
-                  <PosterPlaceholder title={expandedItem.title} type={expandedItem.type} className="result-poster" />
-                )}
-              </div>
-              <div className="card-modal-info">
-                <div className="card-modal-title-row">
-                  <h2>{expandedItem.title}</h2>
-                  <span className="result-type-badge" style={{ position: 'static' }}>
-                    {expandedItem.type === 'MOVIE' ? 'Filme' :
-                     expandedItem.type === 'SERIES' ? 'Série' :
-                     expandedItem.type === 'ANIME' ? 'Anime' : expandedItem.type}
-                  </span>
-                </div>
-                <div className="card-modal-meta">
-                  <span>📅 {expandedItem.year || 'Sem data'}</span>
-                  <span>⭐ {expandedItem.rating || 'Sem nota'}</span>
-                  {(richDetails?.duration || expandedItem.duration) && (
-                    <span>⏱ {richDetails?.duration || expandedItem.duration} min</span>
-                  )}
-                </div>
-                <div className="card-modal-genres">
-                  🎭 {expandedItem.genres?.length > 0 ? expandedItem.genres.join(', ') : 'Sem gênero'}
-                </div>
-                <p className="card-modal-description">
-                  {expandedItem.description || 'Sem sinopse disponível.'}
-                </p>
-
-                {richDetailsLoading && (
-                  <div className="card-modal-rich-skeleton">
-                    <div className="skeleton-meta" style={{ width: '70%' }}></div>
-                    <div className="skeleton-meta" style={{ width: '90%' }}></div>
-                    <div className="skeleton-meta" style={{ width: '50%' }}></div>
-                  </div>
-                )}
-
-                {!richDetailsLoading && richDetails && (
-                  <div className="card-modal-rich-details">
-                    {richDetails.director && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Direção</span>
-                        <span>{richDetails.director}</span>
-                      </div>
-                    )}
-                    {richDetails.cast?.length > 0 && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Elenco</span>
-                        <span>{richDetails.cast.join(', ')}</span>
-                      </div>
-                    )}
-                    {richDetails.seasons && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Temporadas</span>
-                        <span>{richDetails.seasons}</span>
-                      </div>
-                    )}
-                    {richDetails.episodes && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Episódios</span>
-                        <span>{richDetails.episodes}</span>
-                      </div>
-                    )}
-                    {richDetails.studios?.length > 0 && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Estúdio</span>
-                        <span>{richDetails.studios.join(', ')}</span>
-                      </div>
-                    )}
-                    {richDetails.status && (
-                      <div className="card-modal-detail-row">
-                        <span className="card-modal-detail-label">Status</span>
-                        <span>{richDetails.status}</span>
-                      </div>
-                    )}
-                    {trailerUrl(richDetails.trailer) && (
-                      <a
-                        href={trailerUrl(richDetails.trailer)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-trailer"
-                      >
-                        ▶ Ver Trailer
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                <div className="card-modal-actions">
-                  <div className="movie-actions" style={{ width: '100%' }}>
-                    <button
-                      onClick={() => handleToggleWatched(expandedItem)}
-                      className={`btn-toggle ${expandedItem.watched ? 'watched' : ''}`}
-                    >
-                      {expandedItem.watched ? '✅ Assistido' : '⭕ Não assistido'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(expandedItem.id)}
-                      className="btn-delete-icon"
-                      title="Remover da lista"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              </div>
+        <CardModal
+          item={expandedItem}
+          richDetails={richDetails}
+          richDetailsLoading={richDetailsLoading}
+          onClose={() => setExpandedItemId(null)}
+          actions={
+            <div className="movie-actions" style={{ width: '100%' }}>
+              <button
+                onClick={() => handleToggleWatched(expandedItem)}
+                className={`btn-toggle ${expandedItem.watched ? 'watched' : ''}`}
+              >
+                {expandedItem.watched ? '✅ Assistido' : '⭕ Não assistido'}
+              </button>
+              <button
+                onClick={() => handleDelete(expandedItem.id)}
+                className="btn-delete-icon"
+                title="Remover da lista"
+              >
+                🗑️
+              </button>
             </div>
-          </div>
-        </div>
+          }
+        />
       )}
     </div>
   )
