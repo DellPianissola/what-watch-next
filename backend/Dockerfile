@@ -1,35 +1,24 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Instala OpenSSL e outras dependências necessárias para o Prisma
-RUN apk add --no-cache openssl libc6-compat
+# OpenSSL para Prisma, netcat para o start.sh esperar o banco
+RUN apk add --no-cache openssl libc6-compat netcat-openbsd
 
-# Instala Prisma CLI globalmente
+# Prisma CLI global
 RUN npm install -g prisma
 
-# Copia arquivos de dependências
-COPY package*.json ./
-
-# Instala dependências
+# Dependências (cache layer separado)
+COPY package.json package-lock.json ./
 RUN npm install
 
-# Copia o schema do Prisma
+# Schema + Prisma Client
 COPY prisma ./prisma
-
-# Gera o Prisma Client
 RUN npx prisma generate
 
-# Copia o script de start
-COPY start.sh ./
-
-# Torna o script executável
+# Resto do código
+COPY . .
 RUN chmod +x start.sh
 
-# Copia o resto dos arquivos
-COPY . .
-
 EXPOSE 5000
-
-# Usa o script de entrypoint que executa migrations automaticamente
 CMD ["./start.sh"]

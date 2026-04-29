@@ -20,6 +20,48 @@ services:
       retries: 5
       start_period: 10s
 
+  minio:
+    image: minio/minio:latest
+    container_name: whatchu-minio
+    restart: unless-stopped
+    # Console NÃO exposto publicamente em prod — só pelo host se precisar
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: whatchu-minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+      mc mb --ignore-existing local/${MINIO_BUCKET} &&
+      mc anonymous set download local/${MINIO_BUCKET}
+      "
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+    networks:
+      - app-network
+
   backend:
     build:
       context: ./backend
@@ -28,14 +70,19 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    # Sem bind mount: tudo vem da imagem. Sem npm install no startup.
     environment:
       - NODE_ENV=production
       - PORT=5000
+      - PGHOST=postgres
+      - PGPORT=5432
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
     env_file:
       - ./backend/.env
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - app-network
@@ -57,6 +104,7 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   app-network:
