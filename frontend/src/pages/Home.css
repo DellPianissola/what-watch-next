@@ -140,7 +140,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 2.5rem;
+  padding: 2rem 2rem 1.5rem;
+}
+
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .card-header {
@@ -174,6 +181,16 @@
   display: flex;
   flex-direction: column;
   animation: slideIn 0.4s ease-out;
+  cursor: pointer;
+}
+
+.draw-result-panel:hover .draw-result-bg {
+  transform: scale(1.03);
+  transition: transform 0.4s ease;
+}
+
+.draw-result-bg {
+  transition: transform 0.4s ease;
 }
 
 /* Poster preenche a coluna inteira como fundo */
@@ -226,7 +243,7 @@
   position: relative;
   z-index: 2;
   margin-top: auto;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -280,10 +297,25 @@
   color: rgba(255, 255, 255, 0.72);
   line-height: 1.55;
   margin: 0.25rem 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  max-height: calc(3 * 0.83rem * 1.55);
+  overflow-y: auto;
+}
+
+.draw-result-description::-webkit-scrollbar {
+  width: 3px;
+}
+
+.draw-result-description::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.draw-result-description::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+.draw-result-description::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 /* ── Placeholder geométrico ──────────────────────── */
@@ -595,7 +627,7 @@
 .action-buttons-main {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .btn {

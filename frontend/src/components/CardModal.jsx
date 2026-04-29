@@ -135,9 +135,11 @@ const CardModal = ({ item, richDetails, richDetailsLoading, onClose, actions }) 
               </div>
             )}
 
-            <div className="card-modal-actions">
-              {actions}
-            </div>
+            {actions != null && (
+              <div className="card-modal-actions">
+                {actions}
+              </div>
+            )}
           </div>
 
         </div>

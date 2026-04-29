@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import WatchuLogo from '../components/WatchuLogo.jsx'
+import CardModal from '../components/CardModal.jsx'
+import { useRichDetails } from '../hooks/useRichDetails.js'
 import './Home.css'
 
 const TYPE_OPTIONS = [
@@ -22,12 +24,15 @@ const Home = () => {
   const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
   const [filterType, setFilterType] = useState('')
   const [filterGenres, setFilterGenres] = useState([])
   const [availableGenres, setAvailableGenres] = useState([])
   const [showGenreDropdown, setShowGenreDropdown] = useState(false)
   const [ignoreWatched, setIgnoreWatched] = useState(false)
   const genreDropdownRef = useRef(null)
+
+  const { richDetails, richDetailsLoading } = useRichDetails(modalOpen ? selectedMovie : null)
 
   useEffect(() => {
     setIsLoaded(true)
@@ -199,46 +204,48 @@ const Home = () => {
               </label>
             </div>
 
-            {listIsEmpty ? (
-              <div className="empty-list-state">
-                <p className="empty-list-text">
-                  Sua lista está vazia. Pesquise filmes, séries ou animes para começar.
-                </p>
-                <Link to="/search" className="btn btn-primary btn-draw">
-                  <span className="btn-icon">🔍</span>
-                  <span className="btn-text">Pesquisar conteúdo</span>
-                </Link>
-              </div>
-            ) : (
-              <div className="action-buttons-main">
-                <button
-                  className="btn btn-primary btn-draw"
-                  onClick={handleDraw}
-                  disabled={isDrawing}
-                >
-                  <span className="btn-icon">🎲</span>
-                  <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
-                </button>
-                <button className="btn btn-ghost btn-lucky" onClick={handleLucky}>
-                  <span className="btn-icon">✨</span>
-                  <span className="btn-text">Estou com sorte</span>
-                  <span className="btn-soon">em breve</span>
-                </button>
-              </div>
-            )}
+            <div className="card-actions">
+              {listIsEmpty ? (
+                <div className="empty-list-state">
+                  <p className="empty-list-text">
+                    Sua lista está vazia. Pesquise filmes, séries ou animes para começar.
+                  </p>
+                  <Link to="/search" className="btn btn-primary btn-draw">
+                    <span className="btn-icon">🔍</span>
+                    <span className="btn-text">Pesquisar conteúdo</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="action-buttons-main">
+                  <button
+                    className="btn btn-primary btn-draw"
+                    onClick={handleDraw}
+                    disabled={isDrawing}
+                  >
+                    <span className="btn-icon">🎲</span>
+                    <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
+                  </button>
+                  <button className="btn btn-ghost btn-lucky" onClick={handleLucky}>
+                    <span className="btn-icon">✨</span>
+                    <span className="btn-text">Estou com sorte</span>
+                    <span className="btn-soon">em breve</span>
+                  </button>
+                </div>
+              )}
 
-            <div className="group-row">
-              <button className="btn-group" onClick={handleGroup}>
-                👥 Formar grupo
-                <span className="btn-soon btn-soon--inline">em breve</span>
-              </button>
+              <div className="group-row">
+                <button className="btn-group" onClick={handleGroup}>
+                  👥 Formar grupo
+                  <span className="btn-soon btn-soon--inline">em breve</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Coluna direita — poster ou placeholder */}
           <div className="card-right">
             {selectedMovie ? (
-              <div className="draw-result-panel">
+              <div className="draw-result-panel" onClick={() => setModalOpen(true)}>
                 {selectedMovie.poster ? (
                   <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-result-bg" />
                 ) : (
@@ -250,7 +257,7 @@ const Home = () => {
                 )}
                 <div className="draw-result-top">
                   <span className="draw-result-label">🎉 Sorteado!</span>
-                  <button className="btn-close-draw" onClick={() => setSelectedMovie(null)}>✕</button>
+                  <button className="btn-close-draw" onClick={(e) => { e.stopPropagation(); setSelectedMovie(null); setModalOpen(false) }}>✕</button>
                 </div>
                 <div className="draw-result-content">
                   <div className="draw-result-meta">
@@ -291,6 +298,16 @@ const Home = () => {
 
         </div>
       </div>
+
+      {modalOpen && selectedMovie && (
+        <CardModal
+          item={selectedMovie}
+          richDetails={richDetails}
+          richDetailsLoading={richDetailsLoading}
+          onClose={() => setModalOpen(false)}
+          actions={null}
+        />
+      )}
     </div>
   )
 }
