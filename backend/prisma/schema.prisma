@@ -11,29 +11,33 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String
-  username  String   @unique
-  password  String
-  birthDate DateTime? 
-  isAdmin   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String   @id @default(uuid())
+  email         String
+  username      String   @unique
+  password      String
+  birthDate     DateTime?
+  isAdmin       Boolean  @default(false)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relacionamentos
-  profile   Profile?
+  profile              Profile?
+  verificationTokens   VerificationToken[]
 
   @@map("users")
 }
 
 model Profile {
-  id           String    @id @default(uuid())
-  name         String
-  userId       String    @unique
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  onboardedAt  DateTime? // null = onboarding pendente; setado ao concluir ou skipar
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                String    @id @default(uuid())
+  name              String
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onboardedAt       DateTime?
+  avatarUrl         String?
+  allowAdultContent Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // Relacionamentos
   movies    Movie[]
@@ -69,6 +73,26 @@ model Movie {
   @@index([priority])
   @@index([watched])
   @@map("movies")
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("verification_tokens")
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  EMAIL_CHANGE
 }
 
 enum MovieType {
