@@ -1,17 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMovies, drawMovie } from '../services/api.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import WatchuLogo from '../components/WatchuLogo.jsx'
 import './Home.css'
 
+const TYPE_OPTIONS = [
+  { value: '',       label: 'Todos'  },
+  { value: 'MOVIE',  label: 'Filme'  },
+  { value: 'SERIES', label: 'Série'  },
+  { value: 'ANIME',  label: 'Anime'  },
+]
+
 const Home = () => {
+  const { profile } = useAuth()
   const { toast } = useNotify()
   const [isLoaded, setIsLoaded] = useState(false)
   const [stats, setStats] = useState({ movies: 0, series: 0, animes: 0 })
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [filterType, setFilterType] = useState('')
+  const [filterGenres, setFilterGenres] = useState([])
+  const [availableGenres, setAvailableGenres] = useState([])
+  const [showGenreDropdown, setShowGenreDropdown] = useState(false)
+  const [ignoreWatched, setIgnoreWatched] = useState(false)
+  const genreDropdownRef = useRef(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -23,100 +38,189 @@ const Home = () => {
     try {
       const response = await getMovies()
       const movies = response.data.movies
-      
       setStats({
         movies: movies.filter(m => m.type === 'MOVIE').length,
         series: movies.filter(m => m.type === 'SERIES').length,
         animes: movies.filter(m => m.type === 'ANIME').length,
       })
+      const genres = [...new Set(movies.flatMap(m => m.genres ?? []))].sort()
+      setAvailableGenres(genres)
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error)
     }
   }
 
+  useEffect(() => {
+    if (!showGenreDropdown) return
+    const handler = (e) => {
+      if (genreDropdownRef.current && !genreDropdownRef.current.contains(e.target)) {
+        setShowGenreDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showGenreDropdown])
+
+  const toggleGenre = (genre) => {
+    setFilterGenres(prev =>
+      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+    )
+  }
+
   const handleDraw = async () => {
     setIsDrawing(true)
     setSelectedMovie(null)
-
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
+      // TODO (backend): passar { type: filterType, ignoreWatched, genres: filterGenres }
       const response = await drawMovie()
       setSelectedMovie(response.data.movie)
     } catch (error) {
       if (error.response?.status === 404) {
         toast.info('Sua lista está vazia — adicione filmes, séries ou animes pra começar')
       } else {
-        toast.error('Erro ao sortear filme. Tente novamente.')
+        toast.error('Erro ao sortear. Tente novamente.')
       }
     } finally {
       setIsDrawing(false)
     }
   }
 
+  const handleLucky = () => {
+    toast.info('Em breve — vai descobrir algo novo fora da sua lista!')
+  }
+
+  const handleGroup = () => {
+    toast.info('Em breve — você vai poder sortear com os amigos!')
+  }
+
+  const greeting = profile?.name ? `Olá, ${profile.name.split(' ')[0]}!` : 'Bem-vindo!'
+
   return (
     <div className="home">
-      {/* Cinema Background */}
       <div className="cinema-bg">
         {[...Array(18)].map((_, i) => (
           <div key={i} className={`glow-dot glow-dot-${i + 1}`} />
         ))}
       </div>
 
-      {/* Main Content */}
       <div className={`home-content ${isLoaded ? 'loaded' : ''}`}>
-        {/* Header */}
         <header className="home-header">
           <div className="logo">
             <WatchuLogo size={72} />
             <h1 className="logo-text">What<span className="logo-chu">chu</span></h1>
           </div>
-          <p className="tagline">O que assistir hoje?</p>
+          <p className="tagline">O que vamos assistir hoje?</p>
         </header>
 
-        {/* Main Card */}
         <div className="main-card">
-          <div className="card-header">
-            <h2>Bem-vindos!</h2>
-            <p className="subtitle">O que vamos assistir hoje?</p>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="action-buttons-main">
-            <button
-              className="btn btn-primary btn-draw"
-              onClick={handleDraw}
-              disabled={isDrawing}
-            >
-              <span className="btn-icon">🎲</span>
-              <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
-            </button>
-            <button
-              className="btn btn-secondary btn-list"
-              onClick={() => navigate('/list')}
-            >
-              <span className="btn-icon">📋</span>
-              <span className="btn-text">Minha Lista</span>
-            </button>
-          </div>
+          {/* Coluna esquerda — controles */}
+          <div className="card-left">
+            <div className="card-header">
+              <h2>{greeting}</h2>
+            </div>
 
-          {/* Resultado do Sorteio */}
-          {selectedMovie && (
-            <div className="draw-result">
-              <div className="draw-result-header">
-                <h3>🎉 Sorteado!</h3>
-                <button 
-                  className="btn-close-draw"
-                  onClick={() => setSelectedMovie(null)}
-                >
-                  ✕
-                </button>
+            <div className="stats-preview">
+              <div className="stat-item">
+                <div className="stat-value">{stats.movies}</div>
+                <div className="stat-label">Filmes</div>
               </div>
-              <div className="draw-result-content">
+              <div className="stat-divider" />
+              <div className="stat-item">
+                <div className="stat-value">{stats.series}</div>
+                <div className="stat-label">Séries</div>
+              </div>
+              <div className="stat-divider" />
+              <div className="stat-item">
+                <div className="stat-value">{stats.animes}</div>
+                <div className="stat-label">Animes</div>
+              </div>
+            </div>
+
+            <div className="draw-filters">
+              <div className="draw-filter-row">
+                {TYPE_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    className={`draw-type-pill ${filterType === value ? 'active' : ''}`}
+                    onClick={() => setFilterType(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+                {availableGenres.length > 0 && (
+                  <div className="genre-filter-wrapper" ref={genreDropdownRef}>
+                    <button
+                      className={`draw-type-pill genre-pill ${filterGenres.length > 0 ? 'active' : ''}`}
+                      onClick={() => setShowGenreDropdown(v => !v)}
+                    >
+                      Gênero {filterGenres.length > 0 ? `(${filterGenres.length})` : '▾'}
+                    </button>
+                    {showGenreDropdown && (
+                      <div className="genre-dropdown-home">
+                        {availableGenres.map(genre => (
+                          <label key={genre} className="genre-option-home">
+                            <input
+                              type="checkbox"
+                              checked={filterGenres.includes(genre)}
+                              onChange={() => toggleGenre(genre)}
+                            />
+                            <span>{genre}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <label className="draw-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={ignoreWatched}
+                  onChange={(e) => setIgnoreWatched(e.target.checked)}
+                  className="draw-toggle-input"
+                />
+                <span className="draw-toggle-track" />
+                <span className="draw-toggle-text">Ignorar já assistidos</span>
+              </label>
+            </div>
+
+            <div className="action-buttons-main">
+              <button
+                className="btn btn-primary btn-draw"
+                onClick={handleDraw}
+                disabled={isDrawing}
+              >
+                <span className="btn-icon">🎲</span>
+                <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>
+              </button>
+              <button className="btn btn-ghost btn-lucky" onClick={handleLucky}>
+                <span className="btn-icon">✨</span>
+                <span className="btn-text">Estou com sorte</span>
+              </button>
+            </div>
+
+            <div className="group-row">
+              <button className="btn-group" onClick={handleGroup}>
+                👥 Formar grupo
+              </button>
+            </div>
+          </div>
+
+          {/* Coluna direita — poster ou placeholder */}
+          <div className="card-right">
+            {selectedMovie ? (
+              <div className="draw-result-panel">
+                <div className="draw-result-top">
+                  <span className="draw-result-label">🎉 Sorteado!</span>
+                  <button className="btn-close-draw" onClick={() => setSelectedMovie(null)}>✕</button>
+                </div>
                 {selectedMovie.poster ? (
                   <img src={selectedMovie.poster} alt={selectedMovie.title} className="draw-poster" />
                 ) : (
-                  <PosterPlaceholder 
-                    title={selectedMovie.title} 
+                  <PosterPlaceholder
+                    title={selectedMovie.title}
                     type={selectedMovie.type}
                     className="draw-poster"
                   />
@@ -124,77 +228,39 @@ const Home = () => {
                 <div className="draw-info">
                   <h4>{selectedMovie.title}</h4>
                   <p className="draw-type">
-                    {selectedMovie.type === 'MOVIE' ? 'Filme' : 
-                     selectedMovie.type === 'SERIES' ? 'Série' : 
-                     'Anime'}
+                    {selectedMovie.type === 'MOVIE' ? 'Filme' :
+                     selectedMovie.type === 'SERIES' ? 'Série' : 'Anime'}
                   </p>
                   {selectedMovie.description && (
                     <p className="draw-description">{selectedMovie.description}</p>
                   )}
-                  <div className="draw-actions">
-                    <button 
-                      className="btn-watch-now"
-                      onClick={() => navigate('/list')}
-                    >
-                      Ver na Lista
-                    </button>
-                  </div>
+                  <button className="btn-watch-now" onClick={() => navigate('/list')}>
+                    Ver na Lista
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Stats Preview */}
-          <div className="stats-preview">
-            <div className="stat-item">
-              <div className="stat-value">{stats.movies}</div>
-              <div className="stat-label">Filmes</div>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <div className="stat-value">{stats.series}</div>
-              <div className="stat-label">Séries</div>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <div className="stat-value">{stats.animes}</div>
-              <div className="stat-label">Animes</div>
-            </div>
+            ) : (
+              <div className={`draw-placeholder ${isDrawing ? 'drawing' : ''}`}>
+                <div className="geo-ring geo-ring--1" />
+                <div className="geo-ring geo-ring--2" />
+                <div className="geo-ring geo-ring--3" />
+                <div className="geo-triangle geo-triangle--1" />
+                <div className="geo-triangle geo-triangle--2" />
+                <div className="geo-bar geo-bar--1" />
+                <div className="geo-bar geo-bar--2" />
+                <div className="geo-dot geo-dot--1" />
+                <div className="geo-dot geo-dot--2" />
+                <div className="placeholder-hint">
+                  {isDrawing ? 'Sorteando...' : 'Sorteie algo'}
+                </div>
+              </div>
+            )}
           </div>
+
         </div>
-
-        {/* Features Preview */}
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">👥</div>
-            <h3>Perfis</h3>
-            <p>Cada um adiciona seus favoritos</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">⭐</div>
-            <h3>Prioridades</h3>
-            <p>Organize por importância</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">🆕</div>
-            <h3>Novidades</h3>
-            <p>Fique por dentro do que é novo</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">🎯</div>
-            <h3>Sorteio Inteligente</h3>
-            <p>Algoritmo que considera preferências</p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="home-footer">
-          <p>Feito com ❤️ para assistir juntos</p>
-        </footer>
       </div>
     </div>
   )
 }
 
 export default Home
-
