@@ -243,11 +243,25 @@ const MyList = () => {
           <div className="loading">Carregando...</div>
         ) : movies.length === 0 ? (
           <div className="empty-state">
-            <p>Nenhum item adicionado ainda</p>
-            <p className="empty-hint">Clique em "Adicionar" para buscar filmes, séries e animes!</p>
-            <button className="btn-add-empty" onClick={() => navigate('/search')}>
-              ➕ Adicionar Primeiro Item
-            </button>
+            {filter.type || filter.watched ? (
+              // Filtro ativo mas sem resultados — sem CTA de adicionar
+              <p>
+                {filter.watched === 'true'
+                  ? 'Você ainda não marcou nenhum item como assistido.'
+                  : filter.watched === 'false'
+                  ? 'Nenhum item pendente para assistir.'
+                  : 'Nenhum item corresponde ao filtro selecionado.'}
+              </p>
+            ) : (
+              // Lista completamente vazia — mostra CTA de onboarding
+              <>
+                <p>Nenhum item adicionado ainda</p>
+                <p className="empty-hint">Clique em "Adicionar" para buscar filmes, séries e animes!</p>
+                <button className="btn-add-empty" onClick={() => navigate('/search')}>
+                  ➕ Adicionar Primeiro Item
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="movies-by-category">
