@@ -37,6 +37,8 @@ const Home = () => {
   useEffect(() => {
     setIsLoaded(true)
     loadStats()
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
   }, [])
 
   const loadStats = async () => {
