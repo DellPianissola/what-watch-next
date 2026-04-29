@@ -1,8 +1,16 @@
 import express from 'express'
+import multer from 'multer'
 import { asyncHandler } from '../lib/asyncHandler.js'
 import * as profilesService from '../services/profiles.js'
+import { uploadAvatar } from '../services/storage.js'
 
 const router = express.Router()
+
+// multer com armazenamento em memória — o buffer é passado direto pro MinIO
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 6 * 1024 * 1024 }, // 6 MB (validação final fica no service)
+})
 
 // GET /api/profiles - Retorna o perfil do usuário autenticado
 router.get('/', asyncHandler(async (req, res) => {
@@ -35,6 +43,24 @@ router.post('/onboarded', asyncHandler(async (req, res) => {
     message: alreadyCompleted ? 'Onboarding já estava concluído' : 'Onboarding concluído',
     profile,
   })
+}))
+
+// PUT /api/profiles/email - Troca o email do usuário (envia verificação pro novo endereço)
+router.put('/email', asyncHandler(async (req, res) => {
+  await profilesService.changeEmail(req.user.id, req.body.email)
+  res.json({ message: 'Email atualizado. Verifique sua caixa de entrada para confirmar.' })
+}))
+
+// PUT /api/profiles/adult-content - Liga/desliga conteúdo adulto (exige 18+ e email verificado)
+router.put('/adult-content', asyncHandler(async (req, res) => {
+  const profile = await profilesService.setAdultContentPreference(req.user.id, req.body.enabled)
+  res.json({ message: 'Preferência atualizada', profile })
+}))
+
+// PUT /api/profiles/avatar - Upload de foto de perfil
+router.put('/avatar', upload.single('avatar'), asyncHandler(async (req, res) => {
+  const profile = await uploadAvatar(req.user.id, req.file?.buffer, req.file?.mimetype)
+  res.json({ message: 'Avatar atualizado', profile })
 }))
 
 export default router

@@ -1,12 +1,18 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { randomBytes } from 'crypto'
 import { prisma } from '../config/database.js'
 import {
   ValidationError,
   ConflictError,
   UnauthorizedError,
   NotFoundError,
+  ForbiddenError,
 } from '../lib/httpErrors.js'
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from './email.js'
 
 // ─── Helpers internos ───────────────────────────────────────────────────────
 
@@ -58,6 +64,23 @@ const decodeRefreshToken = (refreshToken) => {
   }
 }
 
+const generateVerificationToken = () => randomBytes(32).toString('hex')
+
+const TOKEN_TTL = {
+  EMAIL_VERIFICATION: 24 * 60 * 60 * 1000, // 24h
+  PASSWORD_RESET:     30 * 60 * 1000,       // 30min
+  EMAIL_CHANGE:       24 * 60 * 60 * 1000,  // 24h
+}
+
+// Cria (ou substitui) um token de verificação para o usuário
+const upsertVerificationToken = async (userId, type) => {
+  const token = generateVerificationToken()
+  const expiresAt = new Date(Date.now() + TOKEN_TTL[type])
+  await prisma.verificationToken.deleteMany({ where: { userId, type } })
+  await prisma.verificationToken.create({ data: { userId, token, type, expiresAt } })
+  return token
+}
+
 // Seleciona apenas campos públicos do user (nunca a senha)
 const PUBLIC_USER_FIELDS = {
   id: true,
@@ -65,6 +88,7 @@ const PUBLIC_USER_FIELDS = {
   username: true,
   birthDate: true,
   isAdmin: true,
+  emailVerified: true,
   createdAt: true,
 }
 
@@ -93,6 +117,10 @@ export const registerUser = async ({ email, username, password, birthDate }) => 
   const profile = await prisma.profile.create({
     data: { name: username, userId: user.id },
   })
+
+  const verificationToken = await upsertVerificationToken(user.id, 'EMAIL_VERIFICATION')
+  // Disparo em background — falha no email não deve bloquear o cadastro
+  sendVerificationEmail(user.email, verificationToken).catch(console.error)
 
   const tokens = generateTokens(user.id, user.username)
 
@@ -126,6 +154,7 @@ export const loginUser = async ({ username, password }) => {
       email: user.email,
       username: user.username,
       isAdmin: user.isAdmin,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
     },
     profile: user.profile,
@@ -144,6 +173,8 @@ export const getMe = async (userId) => {
           name: true,
           userId: true,
           onboardedAt: true,
+          avatarUrl: true,
+          allowAdultContent: true,
           createdAt: true,
           updatedAt: true,
           _count: { select: { movies: true } },
@@ -176,4 +207,80 @@ export const refreshTokens = async (refreshToken) => {
   }
 
   return generateTokens(user.id, user.username)
+}
+
+export const verifyEmail = async (token) => {
+  const record = await prisma.verificationToken.findUnique({ where: { token } })
+
+  if (!record || record.type !== 'EMAIL_VERIFICATION') {
+    throw new ValidationError('Token de verificação inválido')
+  }
+  if (record.expiresAt < new Date()) {
+    throw new ValidationError('Token de verificação expirado')
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: record.userId },
+      data:  { emailVerified: true },
+    }),
+    prisma.verificationToken.delete({ where: { token } }),
+  ])
+}
+
+export const resendVerificationEmail = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where:  { id: userId },
+    select: { id: true, email: true, emailVerified: true },
+  })
+
+  if (!user) throw new NotFoundError('Usuário não encontrado')
+  if (user.emailVerified) throw new ValidationError('Email já verificado')
+
+  const token = await upsertVerificationToken(userId, 'EMAIL_VERIFICATION')
+  await sendVerificationEmail(user.email, token)
+}
+
+export const requestPasswordReset = async (email) => {
+  const user = await prisma.user.findFirst({
+    where:  { email },
+    select: { id: true, email: true, emailVerified: true },
+  })
+
+  // Anti-enumeração: retorna silenciosamente se o email não existe
+  if (!user) return
+
+  if (!user.emailVerified) {
+    throw new ForbiddenError('Verifique seu email antes de redefinir a senha', {
+      code: 'EMAIL_NOT_VERIFIED',
+    })
+  }
+
+  const token = await upsertVerificationToken(user.id, 'PASSWORD_RESET')
+  await sendPasswordResetEmail(user.email, token)
+}
+
+export const resetPassword = async (token, newPassword) => {
+  if (!newPassword || newPassword.length < 8) {
+    throw new ValidationError('Senha deve ter no mínimo 8 caracteres')
+  }
+
+  const record = await prisma.verificationToken.findUnique({ where: { token } })
+
+  if (!record || record.type !== 'PASSWORD_RESET') {
+    throw new ValidationError('Token de redefinição inválido')
+  }
+  if (record.expiresAt < new Date()) {
+    throw new ValidationError('Token de redefinição expirado')
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: record.userId },
+      data:  { password: hashedPassword },
+    }),
+    prisma.verificationToken.delete({ where: { token } }),
+  ])
 }

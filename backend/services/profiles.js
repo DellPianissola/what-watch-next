@@ -1,6 +1,8 @@
 import { prisma } from '../config/database.js'
 import { requireUserProfile } from '../lib/profileHelpers.js'
-import { NotFoundError, ConflictError } from '../lib/httpErrors.js'
+import { NotFoundError, ConflictError, ValidationError, ForbiddenError } from '../lib/httpErrors.js'
+import { sendEmailChangeVerification } from './email.js'
+import { randomBytes } from 'crypto'
 
 // `_count.movies` aparece em várias queries — extraído pra constante.
 const COUNT_MOVIES = { _count: { select: { movies: true } } }
@@ -51,19 +53,88 @@ export const createProfile = async (userId, fallbackUsername, payload = {}) => {
 export const updateProfile = async (userId, payload) => {
   await requireUserProfile(userId)
 
-  const data = {}
-  if (payload.name !== undefined) data.name = payload.name
+  const profileData = {}
+  if (payload.name !== undefined) profileData.name = payload.name
+
+  // birthDate fica no model User, não no Profile
+  if (payload.birthDate !== undefined) {
+    const date = new Date(payload.birthDate)
+    if (isNaN(date.getTime())) throw new ValidationError('Data de nascimento inválida')
+    if (date > new Date()) throw new ValidationError('Data de nascimento não pode ser no futuro')
+    await prisma.user.update({ where: { id: userId }, data: { birthDate: date } })
+  }
+
+  // username é campo de login — nunca permitido aqui (payload ignorado silenciosamente)
 
   return prisma.profile.update({
     where: { userId },
-    data,
+    data:  profileData,
   })
 }
 
-/**
- * Marca onboarding como concluído. Idempotente: se já estiver setado,
- * devolve o perfil sem sobrescrever a data original.
- */
+export const changeEmail = async (userId, newEmail) => {
+  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    throw new ValidationError('Email inválido')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  })
+  if (!user) throw new NotFoundError('Usuário não encontrado')
+  if (user.email === newEmail) throw new ValidationError('O novo email é igual ao atual')
+
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data:  { email: newEmail, emailVerified: false },
+    }),
+    prisma.verificationToken.deleteMany({ where: { userId, type: 'EMAIL_CHANGE' } }),
+    prisma.verificationToken.create({
+      data: { userId, token, type: 'EMAIL_CHANGE', expiresAt },
+    }),
+  ])
+
+  sendEmailChangeVerification(newEmail, token).catch(console.error)
+}
+
+export const setAdultContentPreference = async (userId, enabled) => {
+  const profile = await prisma.profile.findUnique({
+    where:   { userId },
+    include: { user: { select: { birthDate: true, emailVerified: true } } },
+  })
+  if (!profile) throw new NotFoundError('Perfil não encontrado')
+
+  // Desativar não exige verificações
+  if (!enabled) {
+    return prisma.profile.update({ where: { userId }, data: { allowAdultContent: false } })
+  }
+
+  const { user } = profile
+  if (!user.emailVerified) {
+    throw new ForbiddenError('Verifique seu email para acessar esta configuração', {
+      code: 'EMAIL_NOT_VERIFIED',
+    })
+  }
+  if (!user.birthDate) {
+    throw new ForbiddenError('Informe sua data de nascimento para acessar esta configuração', {
+      code: 'BIRTHDATE_REQUIRED',
+    })
+  }
+
+  const age = Math.floor((Date.now() - user.birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  if (age < 18) {
+    throw new ForbiddenError('É necessário ter 18 anos ou mais para acessar esta configuração', {
+      code: 'UNDERAGE',
+    })
+  }
+
+  return prisma.profile.update({ where: { userId }, data: { allowAdultContent: true } })
+}
+
 export const markOnboarded = async (userId) => {
   const profile = await requireUserProfile(userId)
 
