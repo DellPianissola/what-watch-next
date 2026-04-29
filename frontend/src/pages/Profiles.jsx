@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { createProfile, updateProfile, changeEmail, setAdultContent, uploadAvatar } from '../services/api.js'
+import { createProfile, updateProfile, changeEmail, setAdultContent, uploadAvatar, resendVerification } from '../services/api.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useNotify } from '../contexts/NotificationContext.jsx'
 import './Profiles.css'
@@ -8,7 +8,8 @@ const Profiles = () => {
   const { user, profile, updateProfile: updateAuthProfile, refreshUser } = useAuth()
   const { toast } = useNotify()
   const [loading, setLoading] = useState(false)
-  const [section, setSection] = useState(null) // null | 'profile' | 'email' | 'password'
+  const [resendingVerification, setResendingVerification] = useState(false)
+  const [section, setSection] = useState(null) // null | 'profile' | 'email'
   const avatarInputRef = useRef(null)
 
   const [formName, setFormName]           = useState('')
@@ -33,18 +34,29 @@ const Profiles = () => {
       const payload = { name: formName }
       if (formBirthDate) payload.birthDate = formBirthDate
       if (profile) {
-        const res = await updateProfile(null, payload)
-        updateAuthProfile(res.data.profile)
+        await updateProfile(null, payload)
       } else {
-        const res = await createProfile(payload)
-        updateAuthProfile(res.data.profile)
+        await createProfile(payload)
       }
+      await refreshUser()
       setSection(null)
       toast.success('Perfil salvo com sucesso')
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro ao salvar perfil')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true)
+    try {
+      await resendVerification()
+      toast.success('Email de verificação reenviado. Verifique sua caixa de entrada.')
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao reenviar email')
+    } finally {
+      setResendingVerification(false)
     }
   }
 
@@ -104,58 +116,101 @@ const Profiles = () => {
   return (
     <div className="profiles-page">
       <div className="profiles-container">
-        <div className="profiles-header">
-          <h2>Meu Perfil</h2>
-        </div>
+        <h2 className="profiles-title">Meu Perfil</h2>
 
-        {/* Avatar */}
-        <div className="profile-card-single">
-          <div className="profile-avatar" onClick={() => avatarInputRef.current?.click()} title="Trocar foto">
-            {profile?.avatarUrl ? (
-              <img src={profile.avatarUrl} alt="Avatar" />
-            ) : (
-              <div className="avatar-placeholder">
-                {profile?.name?.charAt(0)?.toUpperCase() ?? '?'}
-              </div>
-            )}
-            <div className="avatar-overlay">Trocar</div>
-          </div>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            style={{ display: 'none' }}
-            onChange={handleAvatarChange}
-            disabled={loading}
-          />
-          <h3>{profile?.name}</h3>
-          <p className="profile-stats">
-            {profile?._count?.movies ?? 0} filme{profile?._count?.movies !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Informações da conta */}
+        {/* Conta — avatar integrado como header */}
         <div className="profile-section">
+          <div className="profile-section-avatar">
+            <div className="profile-avatar" onClick={() => avatarInputRef.current?.click()} title="Trocar foto">
+              {profile?.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="Avatar" />
+              ) : (
+                <div className="avatar-placeholder">
+                  {profile?.name?.charAt(0)?.toUpperCase() ?? '?'}
+                </div>
+              )}
+              <div className="avatar-overlay">Trocar</div>
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+              disabled={loading}
+            />
+            <p className="avatar-name">{profile?.name}</p>
+            <p className="avatar-stats">
+              {profile?._count?.movies ?? 0} {profile?._count?.movies === 1 ? 'item' : 'itens'} na lista
+            </p>
+          </div>
+
+          <div className="section-divider" />
+
           <h3 className="section-title">Conta</h3>
+
           <div className="profile-info-row">
             <span className="info-label">Usuário</span>
-            <span className="info-value info-value--muted">{user?.username}</span>
+            <span className="info-value">{user?.username}</span>
           </div>
-          <div className="profile-info-row">
+
+          <div className="profile-info-row profile-info-row--email">
             <span className="info-label">Email</span>
             <div className="info-value-group">
               <span className="info-value">{user?.email}</span>
               {!user?.emailVerified && (
                 <span className="badge badge--warning">não verificado</span>
               )}
-              <button className="btn-link-small" onClick={() => { setFormEmail(user?.email ?? ''); setSection('email') }}>
+            </div>
+            <div className="email-actions">
+              {!user?.emailVerified && (
+                <button
+                  className="btn-resend"
+                  onClick={handleResendVerification}
+                  disabled={resendingVerification}
+                >
+                  {resendingVerification ? 'Enviando...' : 'Reenviar verificação'}
+                </button>
+              )}
+              <button
+                className="btn-link-small"
+                onClick={() => { setFormEmail(user?.email ?? ''); setSection(section === 'email' ? null : 'email') }}
+              >
                 Alterar
               </button>
             </div>
           </div>
+
+          {/* Troca de email inline */}
+          {section === 'email' && (
+            <form onSubmit={handleChangeEmail} className="profile-form-inline profile-form-inline--inset">
+              <div className="form-row">
+                <label>Novo email</label>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="form-input"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <p className="form-hint-text">
+                Você receberá um link de confirmação no novo endereço.
+              </p>
+              <div className="form-actions">
+                <button type="submit" disabled={loading} className="btn-save">
+                  {loading ? 'Salvando...' : 'Confirmar troca'}
+                </button>
+                <button type="button" onClick={() => setSection(null)} disabled={loading} className="btn-cancel">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
-        {/* Editar perfil */}
+        {/* Dados pessoais */}
         <div className="profile-section">
           <div className="section-header">
             <h3 className="section-title">Dados pessoais</h3>
@@ -214,37 +269,6 @@ const Profiles = () => {
             </>
           )}
         </div>
-
-        {/* Troca de email */}
-        {section === 'email' && (
-          <div className="profile-section">
-            <h3 className="section-title">Alterar email</h3>
-            <form onSubmit={handleChangeEmail} className="profile-form-inline">
-              <div className="form-row">
-                <label>Novo email</label>
-                <input
-                  type="email"
-                  value={formEmail}
-                  onChange={(e) => setFormEmail(e.target.value)}
-                  className="form-input"
-                  disabled={loading}
-                  required
-                />
-              </div>
-              <p className="form-hint-text">
-                Você receberá um link de confirmação no novo endereço.
-              </p>
-              <div className="form-actions">
-                <button type="submit" disabled={loading} className="btn-save">
-                  {loading ? 'Salvando...' : 'Confirmar troca'}
-                </button>
-                <button type="button" onClick={() => setSection(null)} disabled={loading} className="btn-cancel">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {/* Preferências */}
         {isAdult() && (
