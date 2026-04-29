@@ -86,12 +86,20 @@ export const drawMovie = () => api.post('/movies/draw')
 export const login = (email, password) => api.post('/auth/login', { email, password })
 export const register = (email, username, password) => api.post('/auth/register', { email, username, password })
 export const getMe = () => api.get('/auth/me')
+export const verifyEmail = (token) => api.get('/auth/verify-email', { params: { token } })
+export const resendVerification = () => api.post('/auth/resend-verification')
+export const requestPasswordReset = (email) => api.post('/auth/request-password-reset', { email })
+export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password })
 
 // Profiles
 export const getProfiles = () => api.get('/profiles')
 export const createProfile = (data) => api.post('/profiles', data)
 export const updateProfile = (id, data) => api.put('/profiles', data)
 export const markOnboarded = () => api.post('/profiles/onboarded')
+export const changeEmail = (email) => api.put('/profiles/email', { email })
+export const setAdultContent = (enabled) => api.put('/profiles/adult-content', { enabled })
+export const uploadAvatar = (formData) =>
+  api.put('/profiles/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 
 // External APIs
 const buildExtParams = ({ page, sortBy, genres } = {}) => {

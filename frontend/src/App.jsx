@@ -9,7 +9,9 @@ import Search from './pages/Search'
 import MyList from './pages/MyList'
 import Profiles from './pages/Profiles'
 import Onboarding from './pages/Onboarding'
+import VerifyEmail from './pages/VerifyEmail'
 import NavBar from './components/NavBar.jsx'
+import EmailVerificationBanner from './components/EmailVerificationBanner.jsx'
 import './App.css'
 
 function App() {
@@ -18,9 +20,11 @@ function App() {
       <NotificationProvider>
       <Router>
         <NavBar />
+        <EmailVerificationBanner />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route
             path="/"
             element={

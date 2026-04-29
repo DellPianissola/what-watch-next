@@ -1,0 +1,121 @@
+.verify-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  padding: 2rem;
+}
+
+.verify-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2.5rem;
+  border: 1px solid var(--surface-light);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.verify-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+
+.verify-chu {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.verify-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.verify-content h2 {
+  color: var(--text);
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.verify-content p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.verify-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--surface-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.verify-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.verify-icon--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 2px solid #22c55e;
+}
+
+.verify-icon--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 2px solid var(--danger);
+}
+
+.btn-verify-primary,
+.btn-verify-secondary {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.btn-verify-primary {
+  background: var(--gradient-2);
+  color: white;
+}
+
+.btn-verify-secondary {
+  border: 2px solid var(--surface-light);
+  color: var(--text);
+}
+
+.btn-verify-primary:hover,
+.btn-verify-secondary:hover {
+  transform: translateY(-2px);
+}

@@ -95,6 +95,16 @@ export const AuthProvider = ({ children }) => {
     setProfile(newProfile)
   }
 
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me')
+      setUser(response.data.user)
+      setProfile(response.data.user?.profile || null)
+    } catch {
+      // silencioso — mantém estado atual
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -106,6 +116,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
+        refreshUser,
       }}
     >
       {children}

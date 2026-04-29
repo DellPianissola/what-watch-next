@@ -12,6 +12,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [registered, setRegistered] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
 
@@ -35,12 +36,44 @@ const Register = () => {
     const result = await register(email, username, password, birthDate || null)
 
     if (result.success) {
-      navigate('/')
+      setRegistered(true)
     } else {
       setError(result.error)
     }
 
     setLoading(false)
+  }
+
+  if (registered) {
+    return (
+      <div className="register-page">
+        <div className="register-container">
+          <div className="register-card">
+            <div className="register-header">
+              <div className="auth-brand">
+                <WatchuLogo size={44} />
+                <h1>What<span className="auth-chu">chu</span></h1>
+              </div>
+            </div>
+            <div className="registered-success">
+              <div className="registered-icon">✓</div>
+              <h2>Conta criada!</h2>
+              <p>
+                Enviamos um email para <strong>{email}</strong>.
+                Clique no link para verificar sua conta.
+              </p>
+              <p className="registered-hint">
+                Não recebeu? Verifique a caixa de spam ou{' '}
+                <button className="btn-link" onClick={() => navigate('/')}>
+                  acesse o app
+                </button>{' '}
+                e reenvie pelo banner de aviso.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
