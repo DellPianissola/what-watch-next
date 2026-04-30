@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getMovies, drawMovie } from '../services/api.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -7,6 +7,7 @@ import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import WatchuLogo from '../components/WatchuLogo.jsx'
 import CardModal from '../components/CardModal.jsx'
 import TypeFilterPills, { ALL_TYPES } from '../components/TypeFilterPills.jsx'
+import Dropdown from '../components/Dropdown.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
 import { TYPE_LABEL, formatDuration } from '../utils/content.js'
 import './Home.css'
@@ -23,9 +24,7 @@ const Home = () => {
   const [filterTypes, setFilterTypes] = useState(ALL_TYPES)
   const [filterGenres, setFilterGenres] = useState([])
   const [availableGenres, setAvailableGenres] = useState([])
-  const [showGenreDropdown, setShowGenreDropdown] = useState(false)
   const [ignoreWatched, setIgnoreWatched] = useState(false)
-  const genreDropdownRef = useRef(null)
 
   const { richDetails, richDetailsLoading } = useRichDetails(modalOpen ? selectedMovie : null)
 
@@ -52,23 +51,6 @@ const Home = () => {
     } finally {
       setIsLoadingStats(false)
     }
-  }
-
-  useEffect(() => {
-    if (!showGenreDropdown) return
-    const handler = (e) => {
-      if (genreDropdownRef.current && !genreDropdownRef.current.contains(e.target)) {
-        setShowGenreDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showGenreDropdown])
-
-  const toggleGenre = (genre) => {
-    setFilterGenres(prev =>
-      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
-    )
   }
 
   const handleDraw = async () => {
@@ -147,28 +129,15 @@ const Home = () => {
               <div className="draw-filter-row">
                 <TypeFilterPills value={filterTypes} onChange={setFilterTypes} />
                 {availableGenres.length > 0 && (
-                  <div className="genre-filter-wrapper" ref={genreDropdownRef}>
-                    <button
-                      className={`filter-pill genre-pill ${filterGenres.length > 0 ? 'active' : ''}`}
-                      onClick={() => setShowGenreDropdown(v => !v)}
-                    >
-                      Gênero {filterGenres.length > 0 ? `(${filterGenres.length})` : '▾'}
-                    </button>
-                    {showGenreDropdown && (
-                      <div className="genre-dropdown-home">
-                        {availableGenres.map(genre => (
-                          <label key={genre} className="genre-option-home">
-                            <input
-                              type="checkbox"
-                              checked={filterGenres.includes(genre)}
-                              onChange={() => toggleGenre(genre)}
-                            />
-                            <span>{genre}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <Dropdown
+                    multi
+                    trigger="pill"
+                    align="left"
+                    label="Gênero"
+                    options={availableGenres}
+                    value={filterGenres}
+                    onChange={setFilterGenres}
+                  />
                 )}
               </div>
               <label className="draw-toggle-label">

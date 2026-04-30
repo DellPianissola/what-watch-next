@@ -6,6 +6,7 @@ import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import OnboardingHeader from '../components/OnboardingHeader.jsx'
 import CardModal from '../components/CardModal.jsx'
+import Dropdown from '../components/Dropdown.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
 import { TYPE_LABEL } from '../utils/content.js'
 import './Search.css'
@@ -52,11 +53,9 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
   const [addingMovie, setAddingMovie] = useState(null)
   const [userMovies, setUserMovies] = useState([])
   const [availableGenres, setAvailableGenres] = useState([])
-  const [showGenreDropdown, setShowGenreDropdown] = useState(false)
   const [expandedItem, setExpandedItem] = useState(null)
   const { richDetails, richDetailsLoading } = useRichDetails(expandedItem)
   const debounceTimer = useRef(null)
-  const genreDropdownRef = useRef(null)
 
   // URL é fonte de verdade — type/page/sortBy/genres nunca em useState
   const type = parseTypeParam(searchParams.get('type'))
@@ -104,22 +103,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
       else next.set('genres', arr.join(','))
     }, { resetPage: true })
   }
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (genreDropdownRef.current && !genreDropdownRef.current.contains(event.target)) {
-        setShowGenreDropdown(false)
-      }
-    }
-
-    if (showGenreDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showGenreDropdown])
 
   useEffect(() => {
     const loadUserMovies = async () => {
@@ -320,13 +303,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
   }
 
-  const toggleGenre = (genre) => {
-    const next = selectedGenres.includes(genre)
-      ? selectedGenres.filter(g => g !== genre)
-      : [...selectedGenres, genre]
-    setSelectedGenres(next)
-  }
-
   const cycleSort = (current) => {
     if (current === null) return 'desc'
     if (current === 'desc') return 'asc'
@@ -442,35 +418,19 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
                 </button>
               </div>
 
-              <div className="genre-dropdown-wrapper" ref={genreDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowGenreDropdown(!showGenreDropdown)}
-                  disabled={sortAndGenreDisabled}
-                  title={sortAndGenreDisabled ? 'Indisponível durante busca por texto' : ''}
-                  className="genre-dropdown-btn"
-                >
-                  🎭 Gêneros {selectedGenres.length > 0 && `(${selectedGenres.length})`}
-                </button>
-                {showGenreDropdown && (
-                  <div className="genre-dropdown">
-                    {availableGenres.length > 0 ? (
-                      availableGenres.map(genre => (
-                        <label key={genre} className="genre-option">
-                          <input
-                            type="checkbox"
-                            checked={selectedGenres.includes(genre)}
-                            onChange={() => toggleGenre(genre)}
-                          />
-                          <span>{genre}</span>
-                        </label>
-                      ))
-                    ) : (
-                      <div className="genre-dropdown-empty">Nenhum gênero disponível</div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <Dropdown
+                multi
+                trigger="button"
+                align="right"
+                icon="🎭"
+                label="Gêneros"
+                options={availableGenres}
+                value={selectedGenres}
+                onChange={setSelectedGenres}
+                disabled={sortAndGenreDisabled}
+                disabledTitle="Indisponível durante busca por texto"
+                emptyMessage="Nenhum gênero disponível"
+              />
             </div>
           </div>
         </form>

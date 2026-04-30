@@ -5,6 +5,7 @@ import { useNotify } from '../contexts/NotificationContext.jsx'
 import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import CardModal from '../components/CardModal.jsx'
 import TypeFilterPills, { ALL_TYPES } from '../components/TypeFilterPills.jsx'
+import Dropdown from '../components/Dropdown.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
 import { TYPE_LABEL, PRIORITY_COLOR, PRIORITY_LABEL } from '../utils/content.js'
 import './MyList.css'
@@ -213,15 +214,18 @@ const MyList = () => {
             />
           </div>
 
-          <select
+          <Dropdown
+            trigger="button"
+            align="left"
+            label="Status"
             value={filter.watched}
-            onChange={(e) => setFilter({ ...filter, watched: e.target.value })}
-            className="filter-select"
-          >
-            <option value="">Todos</option>
-            <option value="false">Não assistidos</option>
-            <option value="true">Assistidos</option>
-          </select>
+            onChange={(watched) => setFilter({ ...filter, watched })}
+            options={[
+              { value: '',      label: 'Todos' },
+              { value: 'false', label: 'Não assistidos' },
+              { value: 'true',  label: 'Assistidos' },
+            ]}
+          />
         </div>
 
         {loading ? (
