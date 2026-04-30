@@ -13,7 +13,6 @@ const Onboarding = () => {
   const [transitioning, setTransitioning] = useState(false)
   const [skipDialogOpen, setSkipDialogOpen] = useState(false)
 
-  // Conclui (ou skipa) → marca onboardedAt no backend e leva pro Home
   const finish = async ({ withTransition = true } = {}) => {
     try {
       const response = await markOnboarded()
@@ -33,8 +32,7 @@ const Onboarding = () => {
 
   const handleSkipConfirm = () => {
     setSkipDialogOpen(false)
-    // Skip pula sem transição comemorativa (não tem o que comemorar)
-    finish({ withTransition: false })
+    finish({ withTransition: false }) // skip não merece a tela comemorativa
   }
 
   return (

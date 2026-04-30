@@ -1,29 +1,9 @@
 import { useEffect } from 'react'
 import PosterPlaceholder from './PosterPlaceholder.jsx'
 import { trailerUrl } from '../utils/detailsCache.js'
+import { TYPE_LABEL, formatDuration } from '../utils/content.js'
 import './CardModal.css'
 
-const TYPE_LABEL = { MOVIE: 'Filme', SERIES: 'Série', ANIME: 'Anime' }
-
-const formatDuration = (minutes) => {
-  if (!minutes) return null
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h === 0) return `${m}min`
-  if (m === 0) return `${h}h`
-  return `${h}h${m}min`
-}
-
-/**
- * Modal de detalhes reutilizado em Search e MyList.
- *
- * Props:
- *   item              — objeto do item aberto (externalId, title, type, poster, etc.)
- *   richDetails       — dados extras buscados pela API (diretor, elenco, trailer, …)
- *   richDetailsLoading — boolean enquanto os dados extras carregam
- *   onClose           — callback ao fechar
- *   actions           — JSX com os botões de ação específicos de cada tela
- */
 const CardModal = ({ item, richDetails, richDetailsLoading, onClose, actions }) => {
   // ESC fecha o modal; body fica sem scroll enquanto aberto
   useEffect(() => {

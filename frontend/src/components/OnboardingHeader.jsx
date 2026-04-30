@@ -1,3 +1,5 @@
+import './OnboardingHeader.css'
+
 const OnboardingHeader = ({ count, target, onSkip, onComplete }) => {
   const progress = Math.min(count, target)
   const complete = count >= target

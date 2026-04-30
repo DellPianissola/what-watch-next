@@ -7,6 +7,7 @@ import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import OnboardingHeader from '../components/OnboardingHeader.jsx'
 import CardModal from '../components/CardModal.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
+import { TYPE_LABEL } from '../utils/content.js'
 import './Search.css'
 
 const parsePageParam = (value) => {
@@ -29,7 +30,6 @@ const parseGenresParam = (value) => {
   return value.split(',').map(s => s.trim()).filter(Boolean)
 }
 
-// Deriva (sortDate, sortRating) a partir do sortBy unificado
 const splitSort = (sortBy) => {
   if (sortBy === 'date_asc') return { sortDate: 'asc', sortRating: null }
   if (sortBy === 'date_desc') return { sortDate: 'desc', sortRating: null }
@@ -58,14 +58,14 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
   const debounceTimer = useRef(null)
   const genreDropdownRef = useRef(null)
 
-  // URL é a fonte de verdade para `type`, `currentPage`, `sortBy` e `genres`
+  // URL é fonte de verdade — type/page/sortBy/genres nunca em useState
   const type = parseTypeParam(searchParams.get('type'))
   const currentPage = parsePageParam(searchParams.get('page'))
   const sortBy = parseSortParam(searchParams.get('sortBy'))
   const selectedGenres = parseGenresParam(searchParams.get('genres'))
   const { sortDate, sortRating } = splitSort(sortBy)
 
-  // Busca textual no TMDB (filme/série) NÃO suporta sort/gênero — desabilitamos a UI
+  // TMDB /search não suporta sort/gênero — UI desabilitada nesses casos
   const textSearchActive = query.trim().length > 0
   const sortAndGenreDisabled = textSearchActive && type !== 'anime'
 
@@ -80,7 +80,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     updateParams((next) => {
       if (newType === 'movie') next.delete('type')
       else next.set('type', newType)
-      next.delete('genres') // gêneros são por-tipo; reseta ao trocar
+      next.delete('genres') // gêneros são por-tipo
     }, { resetPage: true })
   }
 
@@ -105,7 +105,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }, { resetPage: true })
   }
 
-  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (genreDropdownRef.current && !genreDropdownRef.current.contains(event.target)) {
@@ -122,7 +121,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
   }, [showGenreDropdown])
 
-  // Carrega filmes do usuário para verificar duplicatas
   useEffect(() => {
     const loadUserMovies = async () => {
       try {
@@ -137,7 +135,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
   }, [profile])
 
-  // Carrega lista de gêneros disponíveis para o tipo atual
   useEffect(() => {
     let cancelled = false
     const loadGenres = async () => {
@@ -153,7 +150,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     return () => { cancelled = true }
   }, [type])
 
-  // Reseta página quando query muda (mudança de tipo/sort/gênero já reseta nos setters)
+  // reseta página ao mudar query; tipo/sort/gênero já resetam nos próprios setters
   const prevQueryRef = useRef(query)
   useEffect(() => {
     if (prevQueryRef.current === query) return
@@ -161,7 +158,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     if (currentPage !== 1) setCurrentPage(1)
   }, [query])
 
-  // Busca automática com debounce ou carrega populares
   const genresKey = selectedGenres.join(',')
   useEffect(() => {
     if (debounceTimer.current) {
@@ -182,11 +178,9 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
 
     if (!query.trim()) {
-      // Popular: sem debounce
       doFetch()
     } else {
-      // Busca: debounce de 500ms
-      debounceTimer.current = setTimeout(doFetch, 500)
+      debounceTimer.current = setTimeout(doFetch, 500) // debounce 500ms só na busca textual
     }
 
     return () => {
@@ -220,7 +214,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
 
   const loadSearch = async (q, searchType, page, sort, genres) => {
     try {
-      // TMDB /search ignora sort/gênero; Jikan suporta
+      // Jikan suporta sort/gênero na busca; TMDB não
       const opts = searchType === 'anime'
         ? { sortBy: sort || undefined, genres }
         : {}
@@ -236,13 +230,12 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
 
   const handleSearch = async (e) => {
     e.preventDefault()
-    // A busca já é automática, mas mantemos o form para UX
+    // busca é automática via useEffect; form existe pra UX (Enter, mobile submit)
   }
 
-  // Verifica se o filme já está na lista do usuário
   const isMovieInList = (movie) => {
     return userMovies.some(userMovie => {
-      // Compara por externalId se disponível, senão por título
+      // externalId preferível; fallback por título
       if (movie.externalId && userMovie.externalId) {
         return userMovie.externalId === movie.externalId.toString()
       }
@@ -259,9 +252,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
       return
     }
 
-    // Verifica se já está na lista
     if (isMovieInList(movie)) {
-      // Remove o filme
       const userMovie = userMovies.find(userMovie => {
         if (movie.externalId && userMovie.externalId) {
           return userMovie.externalId === movie.externalId.toString()
@@ -287,7 +278,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
 
     setAddingMovie(movie.id)
     try {
-      // Mapeia o tipo para o formato esperado pelo backend
+      // normaliza tipo: API externa usa lowercase, backend espera uppercase
       const typeMap = {
         'MOVIE': 'MOVIE',
         'SERIES': 'SERIES',
@@ -322,7 +313,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
   }
 
-  // Sort/filtro agora são feitos pela API (URL → backend). Front renderiza o que vier.
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
@@ -360,7 +350,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
       return Array.from({ length: total }, (_, i) => i + 1)
     }
 
-    // Janela deslizante de 5 páginas centralizada na atual (com clamp nas bordas)
+    // janela de 5 centralizada na página atual, clampada nas bordas
     let start = current - Math.floor(WINDOW_SIZE / 2)
     let end   = start + WINDOW_SIZE - 1
 
@@ -532,9 +522,7 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
                       />
                     )}
                     <span className="result-type-badge">
-                      {item.type === 'MOVIE' ? 'Filme' : 
-                       item.type === 'SERIES' ? 'Série' : 
-                       item.type === 'ANIME' ? 'Anime' : item.type}
+                      {TYPE_LABEL[item.type] ?? item.type}
                     </span>
                   </div>
                   <div className="result-info">

@@ -15,17 +15,11 @@ const NavBar = () => {
     navigate('/login')
   }
 
-  // Não mostra navbar nas páginas de login/register
-  if (!isAuthenticated && (location.pathname === '/login' || location.pathname === '/register')) {
-    return null
-  }
-
-  // Se não estiver autenticado, redireciona para login
   if (!isAuthenticated) {
     return null
   }
 
-  // Não mostra navbar no onboarding (usuário não deve navegar pra fora)
+  // onboarding: sem navbar — usuário não deve sair do fluxo
   if (location.pathname === '/onboarding') {
     return null
   }

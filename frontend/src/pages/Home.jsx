@@ -8,6 +8,7 @@ import WatchuLogo from '../components/WatchuLogo.jsx'
 import CardModal from '../components/CardModal.jsx'
 import TypeFilterPills, { ALL_TYPES } from '../components/TypeFilterPills.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
+import { TYPE_LABEL, formatDuration } from '../utils/content.js'
 import './Home.css'
 
 const Home = () => {
@@ -97,15 +98,6 @@ const Home = () => {
     toast.info('Em breve — você vai poder sortear com os amigos!')
   }
 
-  const formatDuration = (minutes) => {
-    if (!minutes) return null
-    const h = Math.floor(minutes / 60)
-    const m = minutes % 60
-    if (h === 0) return `${m}min`
-    if (m === 0) return `${h}h`
-    return `${h}h${m}min`
-  }
-
   const greeting = profile?.name ? `Olá, ${profile.name.split(' ')[0]}!` : 'Bem-vindo!'
   const totalItems = stats.movies + stats.series + stats.animes
   const listIsEmpty = !isLoadingStats && totalItems === 0
@@ -129,7 +121,6 @@ const Home = () => {
 
         <div className="main-card">
 
-          {/* Coluna esquerda — controles */}
           <div className="card-left">
             <div className="card-header">
               <h2>{greeting}</h2>
@@ -230,7 +221,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Coluna direita — poster ou placeholder */}
           <div className="card-right">
             {selectedMovie ? (
               <div className="draw-result-panel" onClick={() => setModalOpen(true)}>
@@ -250,8 +240,7 @@ const Home = () => {
                 <div className="draw-result-content">
                   <div className="draw-result-meta">
                     <span className="draw-type">
-                      {selectedMovie.type === 'MOVIE' ? 'Filme' :
-                       selectedMovie.type === 'SERIES' ? 'Série' : 'Anime'}
+                      {TYPE_LABEL[selectedMovie.type] ?? selectedMovie.type}
                     </span>
                     {selectedMovie.year && <span className="draw-meta-item">📅 {selectedMovie.year}</span>}
                     {selectedMovie.rating && <span className="draw-meta-item">⭐ {selectedMovie.rating}</span>}

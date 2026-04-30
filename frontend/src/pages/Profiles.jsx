@@ -118,7 +118,6 @@ const Profiles = () => {
       <div className="profiles-container">
         <h2 className="profiles-title">Meu Perfil</h2>
 
-        {/* Conta — avatar integrado como header */}
         <div className="profile-section">
           <div className="profile-section-avatar">
             <div className="profile-avatar" onClick={() => avatarInputRef.current?.click()} title="Trocar foto">
@@ -181,7 +180,6 @@ const Profiles = () => {
             </div>
           </div>
 
-          {/* Troca de email inline */}
           {section === 'email' && (
             <form onSubmit={handleChangeEmail} className="profile-form-inline profile-form-inline--inset">
               <div className="form-row">
@@ -210,7 +208,6 @@ const Profiles = () => {
           )}
         </div>
 
-        {/* Dados pessoais */}
         <div className="profile-section">
           <div className="section-header">
             <h3 className="section-title">Dados pessoais</h3>
@@ -270,7 +267,6 @@ const Profiles = () => {
           )}
         </div>
 
-        {/* Preferências */}
         {isAdult() && (
           <div className="profile-section">
             <h3 className="section-title">Preferências</h3>

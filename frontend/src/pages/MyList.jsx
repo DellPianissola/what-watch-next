@@ -6,6 +6,7 @@ import PosterPlaceholder from '../components/PosterPlaceholder.jsx'
 import CardModal from '../components/CardModal.jsx'
 import TypeFilterPills, { ALL_TYPES } from '../components/TypeFilterPills.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
+import { TYPE_LABEL, PRIORITY_COLOR, PRIORITY_LABEL } from '../utils/content.js'
 import './MyList.css'
 
 const MyList = () => {
@@ -18,12 +19,11 @@ const MyList = () => {
   const [priorityDropdownId, setPriorityDropdownId] = useState(null)
   const priorityDropdownRef = useRef(null)
 
-  // expandedItem é sempre derivado do array — reage automaticamente a toggles e deletes
+  // expandedItem derivado do array — reage automaticamente a toggles e deletes
   const expandedItem = movies.find(m => m.id === expandedItemId) ?? null
 
   const { richDetails, richDetailsLoading } = useRichDetails(expandedItem)
 
-  // Fecha o dropdown de prioridade ao clicar fora dele
   useEffect(() => {
     if (!priorityDropdownId) return
     const handler = (e) => {
@@ -53,8 +53,7 @@ const MyList = () => {
     }
   }
 
-  // Filtro por tipo é client-side: backend ainda só aceita 1 type, mas multi-seleção
-  // funciona bem em memória pra uma watchlist (escala pessoal)
+  // tipo é client-side: multi-seleção; backend só aceita watched como filtro
   const visibleMovies = filter.types.length === ALL_TYPES.length
     ? movies
     : movies.filter(m => filter.types.includes(m.type))
@@ -88,7 +87,7 @@ const MyList = () => {
     try {
       await updateMovie(movie.id, { watched: newWatched })
       setMovies(prev => {
-        // Se há filtro de "watched" ativo e o novo estado não bate, remove o item da view local
+        // filtro ativo e novo estado diverge → retira da view sem refetch
         if (filter.watched !== '' && String(newWatched) !== filter.watched) {
           return prev.filter(m => m.id !== movie.id)
         }
@@ -97,26 +96,6 @@ const MyList = () => {
     } catch (error) {
       console.error('Erro ao atualizar:', error)
       toast.error('Erro ao atualizar item')
-    }
-  }
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'URGENT': return '#ef4444'
-      case 'HIGH':   return '#f59e0b'
-      case 'MEDIUM': return '#3b82f6'
-      case 'LOW':    return '#6b7280'
-      default:       return '#6b7280'
-    }
-  }
-
-  const getPriorityLabel = (priority) => {
-    switch (priority) {
-      case 'URGENT': return 'Máxima'
-      case 'HIGH':   return 'Alta'
-      case 'MEDIUM': return 'Média'
-      case 'LOW':    return 'Baixa'
-      default:       return priority
     }
   }
 
@@ -142,9 +121,7 @@ const MyList = () => {
             <PosterPlaceholder title={movie.title} type={movie.type} className="movie-poster" />
           )}
           <span className="movie-type-badge">
-            {movie.type === 'MOVIE' ? 'Filme' :
-             movie.type === 'SERIES' ? 'Série' :
-             movie.type === 'ANIME' ? 'Anime' : movie.type}
+            {TYPE_LABEL[movie.type] ?? movie.type}
           </span>
           <div
             className="movie-priority-badge-wrapper"
@@ -152,14 +129,14 @@ const MyList = () => {
           >
             <span
               className="movie-priority-badge"
-              style={{ backgroundColor: getPriorityColor(movie.priority) }}
+              style={{ backgroundColor: PRIORITY_COLOR[movie.priority] ?? PRIORITY_COLOR.LOW }}
               onClick={(e) => {
                 e.stopPropagation()
                 setPriorityDropdownId(priorityDropdownId === movie.id ? null : movie.id)
               }}
               title="Alterar prioridade"
             >
-              {getPriorityLabel(movie.priority)} ▾
+              {PRIORITY_LABEL[movie.priority] ?? movie.priority} ▾
             </span>
             {priorityDropdownId === movie.id && (
               <div className="priority-dropdown">
@@ -172,7 +149,7 @@ const MyList = () => {
                   <button
                     key={value}
                     className={`priority-dropdown-option ${movie.priority === value ? 'active' : ''}`}
-                    style={{ '--priority-color': getPriorityColor(value) }}
+                    style={{ '--priority-color': PRIORITY_COLOR[value] ?? PRIORITY_COLOR.LOW }}
                     onClick={(e) => {
                       e.stopPropagation()
                       handleChangePriority(movie, value)

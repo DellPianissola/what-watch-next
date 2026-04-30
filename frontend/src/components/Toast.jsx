@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const ICONS = {
   success: '✓',
@@ -17,18 +17,11 @@ const ROLES = {
 const Toast = ({ id, variant, message, onDismiss }) => {
   const [leaving, setLeaving] = useState(false)
 
-  // Anima a saída antes de remover do DOM (usado quando o usuário clica no X)
+  // anima saída antes de remover do DOM
   const handleDismiss = () => {
     setLeaving(true)
     setTimeout(() => onDismiss(id), 200)
   }
-
-  // Quando o auto-dismiss vier de fora, ainda aplicamos a anim de saída
-  useEffect(() => {
-    return () => {
-      // cleanup vazio — só pra deixar o ponto de extensão claro
-    }
-  }, [])
 
   return (
     <div
