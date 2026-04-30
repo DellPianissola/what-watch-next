@@ -13,8 +13,8 @@ export const ALL_TYPES = TYPE_OPTIONS.map(t => t.value)
  *
  * - Default: passar `ALL_TYPES` no `value` inicial.
  * - Cada pill é um toggle independente.
- * - Se o usuário desmarcar todos, volta automaticamente pra todos selecionados
- *   (sempre há pelo menos um filtro válido).
+ * - Permite seleção vazia — quem consome decide o que fazer (ex.: Home
+ *   desativa o sorteio; MyList mostra lista vazia).
  *
  * Renderiza um fragmento — quem chama escolhe o container (flex row, etc.).
  *
@@ -25,7 +25,7 @@ export const ALL_TYPES = TYPE_OPTIONS.map(t => t.value)
 const TypeFilterPills = ({ value, onChange }) => {
   const toggle = (type) => {
     const next = value.includes(type) ? value.filter(t => t !== type) : [...value, type]
-    onChange(next.length === 0 ? ALL_TYPES : next)
+    onChange(next)
   }
 
   return (

@@ -58,12 +58,18 @@ const Home = () => {
     setSelectedMovie(null)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      // TODO (backend): passar { types: filterTypes, ignoreWatched, genres: filterGenres }
-      const response = await drawMovie()
+      const response = await drawMovie({
+        types: filterTypes,
+        genres: filterGenres,
+        ignoreWatched,
+      })
       setSelectedMovie(response.data.movie)
     } catch (error) {
-      if (error.response?.status === 404) {
+      const code = error.response?.data?.code
+      if (code === 'EMPTY_LIST') {
         toast.info('Sua lista está vazia — adicione filmes, séries ou animes pra começar')
+      } else if (code === 'NO_MATCH') {
+        toast.info('Nenhum item da sua lista corresponde aos filtros selecionados')
       } else {
         toast.error('Erro ao sortear. Tente novamente.')
       }
@@ -83,6 +89,8 @@ const Home = () => {
   const greeting = profile?.name ? `Olá, ${profile.name.split(' ')[0]}!` : 'Bem-vindo!'
   const totalItems = stats.movies + stats.series + stats.animes
   const listIsEmpty = !isLoadingStats && totalItems === 0
+  const noTypeSelected = filterTypes.length === 0
+  const drawDisabled = isDrawing || noTypeSelected
 
   return (
     <div className="home">
@@ -168,7 +176,8 @@ const Home = () => {
                   <button
                     className="btn btn-primary btn-draw"
                     onClick={handleDraw}
-                    disabled={isDrawing}
+                    disabled={drawDisabled}
+                    title={noTypeSelected ? 'Selecione ao menos um tipo (Filme, Série ou Anime)' : undefined}
                   >
                     <span className="btn-icon">🎲</span>
                     <span className="btn-text">{isDrawing ? 'Sorteando...' : 'Sortear'}</span>

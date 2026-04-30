@@ -7,11 +7,19 @@ const PRIORITY_WEIGHTS = {
   LOW: 1,
 }
 
-// Sorteia entre TODOS os filmes da lista (assistidos e não-assistidos).
-// Futuro: respeitar uma preferência do usuário pra excluir assistidos (ver BACKLOG).
-const fetchEligibleMovies = async (profileId) => {
+// Sorteia entre filmes do perfil. Aceita filtros opcionais vindos da UI:
+//   - types: array de MOVIE/SERIES/ANIME (já validado pelo service).
+//   - genres: array de nomes de gênero (match se o filme tiver QUALQUER um).
+//   - ignoreWatched: se true, exclui assistidos.
+const fetchEligibleMovies = async (profileId, filters = {}) => {
+  const where = { addedById: profileId }
+
+  if (filters.types?.length) where.type = { in: filters.types }
+  if (filters.genres?.length) where.genres = { hasSome: filters.genres }
+  if (filters.ignoreWatched) where.watched = false
+
   return prisma.movie.findMany({
-    where: { addedById: profileId },
+    where,
     include: {
       addedBy: { select: { id: true, name: true } },
     },
@@ -33,10 +41,18 @@ const pickRandom = (pool) => {
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-export const drawMovie = async (profileId) => {
-  const eligible = await fetchEligibleMovies(profileId)
-  if (eligible.length === 0) return null
+// Conta itens do perfil ignorando filtros — usado pra distinguir
+// "lista vazia" de "filtros não casaram com nada".
+const countAllMovies = (profileId) =>
+  prisma.movie.count({ where: { addedById: profileId } })
 
-  const pool = buildWeightedPool(eligible)
-  return pickRandom(pool)
+export const drawMovie = async (profileId, filters = {}) => {
+  const eligible = await fetchEligibleMovies(profileId, filters)
+  if (eligible.length > 0) {
+    const pool = buildWeightedPool(eligible)
+    return { movie: pickRandom(pool) }
+  }
+
+  const total = await countAllMovies(profileId)
+  return { movie: null, reason: total === 0 ? 'EMPTY_LIST' : 'NO_MATCH' }
 }

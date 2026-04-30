@@ -203,11 +203,32 @@ export const deleteMovie = async (userId, movieId) => {
   await prisma.movie.delete({ where: { id: movieId } })
 }
 
-export const drawForUser = async (userId) => {
-  const profile = await requireUserProfile(userId)
-  const movie = await drawFromLottery(profile.id)
-  if (!movie) {
-    throw new NotFoundError('Sua lista está vazia', { code: 'EMPTY_LIST' })
+// Normaliza filtros vindos do client. Tipos inválidos lançam ValidationError;
+// gêneros são strings livres (TMDB/Jikan retornam nomes em pt-BR/en).
+const normalizeDrawFilters = (filters = {}) => {
+  const out = {}
+
+  if (Array.isArray(filters.types) && filters.types.length > 0) {
+    out.types = filters.types.map((t) => normalizeType(t))
   }
-  return movie
+  if (Array.isArray(filters.genres) && filters.genres.length > 0) {
+    out.genres = filters.genres.filter((g) => typeof g === 'string' && g.trim()).map((g) => g.trim())
+  }
+  if (filters.ignoreWatched) {
+    out.ignoreWatched = true
+  }
+
+  return out
+}
+
+export const drawForUser = async (userId, filters = {}) => {
+  const profile = await requireUserProfile(userId)
+  const normalized = normalizeDrawFilters(filters)
+  const { movie, reason } = await drawFromLottery(profile.id, normalized)
+  if (movie) return movie
+
+  if (reason === 'NO_MATCH') {
+    throw new NotFoundError('Nenhum item da sua lista corresponde aos filtros', { code: 'NO_MATCH' })
+  }
+  throw new NotFoundError('Sua lista está vazia', { code: 'EMPTY_LIST' })
 }
