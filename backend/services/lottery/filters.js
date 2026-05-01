@@ -1,10 +1,4 @@
-// Constrói o `where` do Prisma a partir dos filtros vindos da UI.
-// Filtros já chegam aqui validados/normalizados (ver movies.normalizeDrawFilters).
-//
-//   - types         → IN MOVIE/SERIES/ANIME
-//   - genres        → array overlap (filme com QUALQUER um dos gêneros)
-//   - priorities    → IN LOW/MEDIUM/HIGH/URGENT
-//   - ignoreWatched → exclui assistidos
+// Filtros já chegam normalizados pelo service (movies.normalizeDrawFilters).
 
 export const buildWhere = (profileId, filters = {}) => {
   const where = { addedById: profileId }

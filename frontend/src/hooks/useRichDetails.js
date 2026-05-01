@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react'
 import { getMovieDetails, getSeriesDetails, getAnimeDetails } from '../services/api.js'
 import { detailsCache } from '../utils/detailsCache.js'
 
-// Traduz erro da chamada de detalhes em mensagem pro usuário, considerando
-// qual API externa é a source (anime → MyAnimeList/Jikan, resto → TMDB) e o
-// `code` que o backend marcou (UPSTREAM_RATE_LIMIT / UPSTREAM_DOWN).
 const buildErrorMessage = (error, type) => {
   const source = type === 'ANIME' ? 'MyAnimeList' : 'TMDB'
   const code   = error.response?.data?.code
@@ -24,10 +21,6 @@ const buildErrorMessage = (error, type) => {
 /**
  * Busca os detalhes ricos (diretor, elenco, trailer, etc.) de um item
  * quando ele é aberto no modal. Usa cache de sessão para evitar re-fetches.
- *
- * Devolve `richDetailsError` (string) quando a API externa falha — o modal
- * continua mostrando os dados internos (sinopse, gêneros, etc.) que já tem,
- * e renderiza uma nota inline com essa mensagem em vez dos extras.
  */
 export const useRichDetails = (item) => {
   const [richDetails, setRichDetails] = useState(null)

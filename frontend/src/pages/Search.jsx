@@ -213,9 +213,6 @@ const Search = ({ mode = 'page', onComplete, onSkip }) => {
     }
   }
 
-  // Traduz erro de chamada às APIs externas (TMDB/Jikan) em mensagem pro usuário.
-  // Backend marca falhas de upstream com code UPSTREAM_RATE_LIMIT (503) ou
-  // UPSTREAM_DOWN (502) — diferenciando "API externa fora" de bug nosso (500).
   const notifyExternalError = (error, searchType) => {
     const source = searchType === 'anime' ? 'MyAnimeList' : 'TMDB'
     const code   = error.response?.data?.code

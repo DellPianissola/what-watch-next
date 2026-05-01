@@ -64,8 +64,6 @@ const CardModal = ({ item, richDetails, richDetailsLoading, richDetailsError, on
               </div>
             )}
 
-            {/* Falha na API externa: dados internos (sinopse, gêneros, etc.) já
-                aparecem acima — esta nota substitui apenas o bloco de extras. */}
             {!richDetailsLoading && richDetailsError && (
               <div className="card-modal-rich-error" role="status">
                 ⚠ {richDetailsError}

@@ -41,8 +41,7 @@ class TMDBService {
 
       return this.genreCache[type]
     } catch (error) {
-      // Genres falha em silêncio (cache vazio) — search ainda funciona,
-      // só sem nomes de gêneros nos resultados.
+      // Falha em silêncio: search funciona sem nomes de gêneros.
       console.error('Erro ao buscar gêneros:', describeAxiosError(error))
       return {}
     }

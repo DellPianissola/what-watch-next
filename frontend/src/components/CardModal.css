@@ -149,8 +149,6 @@
   border-top: 1px solid var(--surface-light);
 }
 
-/* Aviso inline quando a API externa (TMDB/Jikan) falha em carregar os
-   detalhes ricos. O resto do modal (sinopse, meta básico) segue visível. */
 .card-modal-rich-error {
   margin-top: 0.75rem;
   padding: 0.625rem 0.75rem;

@@ -203,8 +203,6 @@ export const deleteMovie = async (userId, movieId) => {
   await prisma.movie.delete({ where: { id: movieId } })
 }
 
-// Normaliza filtros vindos do client. Tipos inválidos lançam ValidationError;
-// gêneros são strings livres (TMDB/Jikan retornam nomes em pt-BR/en).
 const normalizeDrawFilters = (filters = {}) => {
   const out = {}
 

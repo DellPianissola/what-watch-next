@@ -52,15 +52,7 @@ export class ConflictError extends HttpError {
   }
 }
 
-// Falha em API externa (TMDB/Jikan). Mapeia o status do upstream pro status
-// HTTP correto da nossa API, pra que o frontend distinga "API externa fora"
-// de "bug do nosso backend":
-//   - 429 do upstream → 503 (Service Unavailable, com Retry-After conceitual)
-//   - 5xx ou rede     → 502 (Bad Gateway)
-//   - resto           → 502 (default)
-//
-// `code` ajuda o frontend a customizar a mensagem (UPSTREAM_RATE_LIMIT,
-// UPSTREAM_DOWN). `source` no details indica qual API caiu (TMDB/JIKAN).
+// 429 do upstream → 503 nosso, resto → 502.
 export class UpstreamError extends HttpError {
   constructor(source, upstreamStatus, message, options = {}) {
     const isRateLimit = upstreamStatus === 429
