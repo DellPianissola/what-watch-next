@@ -203,6 +203,8 @@ export const deleteMovie = async (userId, movieId) => {
   await prisma.movie.delete({ where: { id: movieId } })
 }
 
+const VALID_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+
 // Normaliza filtros vindos do client. Tipos inválidos lançam ValidationError;
 // gêneros são strings livres (TMDB/Jikan retornam nomes em pt-BR/en).
 const normalizeDrawFilters = (filters = {}) => {
@@ -213,6 +215,9 @@ const normalizeDrawFilters = (filters = {}) => {
   }
   if (Array.isArray(filters.genres) && filters.genres.length > 0) {
     out.genres = filters.genres.filter((g) => typeof g === 'string' && g.trim()).map((g) => g.trim())
+  }
+  if (Array.isArray(filters.priorities) && filters.priorities.length > 0) {
+    out.priorities = filters.priorities.map((p) => p.toUpperCase()).filter((p) => VALID_PRIORITIES.includes(p))
   }
   if (filters.ignoreWatched) {
     out.ignoreWatched = true

@@ -9,7 +9,7 @@ import CardModal from '../components/CardModal.jsx'
 import TypeFilterPills, { ALL_TYPES } from '../components/TypeFilterPills.jsx'
 import Dropdown from '../components/Dropdown.jsx'
 import { useRichDetails } from '../hooks/useRichDetails.js'
-import { TYPE_LABEL, formatDuration } from '../utils/content.js'
+import { TYPE_LABEL, PRIORITY_LABEL, formatDuration } from '../utils/content.js'
 import './Home.css'
 
 const Home = () => {
@@ -22,9 +22,18 @@ const Home = () => {
   const [isDrawing, setIsDrawing] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [filterTypes, setFilterTypes] = useState(ALL_TYPES)
+  const [filterPriorities, setFilterPriorities] = useState([])
   const [filterGenres, setFilterGenres] = useState([])
   const [availableGenres, setAvailableGenres] = useState([])
   const [ignoreWatched, setIgnoreWatched] = useState(false)
+
+  // opções fixas — não dependem de dados da API
+  const PRIORITY_OPTIONS = [
+    { value: 'LOW',    label: PRIORITY_LABEL.LOW    },
+    { value: 'MEDIUM', label: PRIORITY_LABEL.MEDIUM },
+    { value: 'HIGH',   label: PRIORITY_LABEL.HIGH   },
+    { value: 'URGENT', label: PRIORITY_LABEL.URGENT },
+  ]
 
   const { richDetails, richDetailsLoading } = useRichDetails(modalOpen ? selectedMovie : null)
 
@@ -60,6 +69,7 @@ const Home = () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
       const response = await drawMovie({
         types: filterTypes,
+        priorities: filterPriorities,
         genres: filterGenres,
         ignoreWatched,
       })
@@ -136,6 +146,15 @@ const Home = () => {
             <div className="draw-filters">
               <div className="draw-filter-row">
                 <TypeFilterPills value={filterTypes} onChange={setFilterTypes} />
+                <Dropdown
+                  multi
+                  trigger="pill"
+                  align="left"
+                  label="Prioridade"
+                  options={PRIORITY_OPTIONS}
+                  value={filterPriorities}
+                  onChange={setFilterPriorities}
+                />
                 {availableGenres.length > 0 && (
                   <Dropdown
                     multi

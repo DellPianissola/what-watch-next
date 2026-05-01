@@ -10,12 +10,14 @@ const PRIORITY_WEIGHTS = {
 // Sorteia entre filmes do perfil. Aceita filtros opcionais vindos da UI:
 //   - types: array de MOVIE/SERIES/ANIME (já validado pelo service).
 //   - genres: array de nomes de gênero (match se o filme tiver QUALQUER um).
+//   - priorities: array de LOW/MEDIUM/HIGH/URGENT (já validado pelo service).
 //   - ignoreWatched: se true, exclui assistidos.
 const fetchEligibleMovies = async (profileId, filters = {}) => {
   const where = { addedById: profileId }
 
   if (filters.types?.length) where.type = { in: filters.types }
   if (filters.genres?.length) where.genres = { hasSome: filters.genres }
+  if (filters.priorities?.length) where.priority = { in: filters.priorities }
   if (filters.ignoreWatched) where.watched = false
 
   return prisma.movie.findMany({
